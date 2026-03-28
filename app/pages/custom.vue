@@ -72,6 +72,9 @@
 import { ref, onMounted, computed, watch } from 'vue' 
 import * as fabric from 'fabric'
 
+import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { db } from '@/utils/firebase'
+
 // ================= STATE =================
 const currentStep = ref(1)
 const progressPercentage = computed(() => (currentStep.value / 6) * 100)
@@ -82,10 +85,10 @@ let fCanvas = null
 // ข้อมูลสำหรับ Step 1
 const selectedType = ref(1)
 const vinylTypes = ref([
-  { id: 1, name: 'เป็นเครื่องที่ใช้งานง่าย ปรับน้อย', desc: 'ไม่ต้องปรับหรือจูนเสียงให้ยุ่งยาก', label: 'เป็นเครื่องที่เน้นใช้งานง่าย ปรับน้อย', image: '/vinyl_1.png' },
-  { id: 2, name: 'ดีไซน์คลาสสิก ลำโพงในตัว', desc: 'เหมาะสำหรับผู้เริ่มต้น', label: 'ดีไซน์คลาสสิก ลำโพงในตัว', image: '/vinyl_2.png' },
+  { id: 1, name: 'ระดับโปร ปรับแต่งได้ทุกจุด', desc: 'เหมาะสำหรับผู้ใช้งานที่ต้องการความละเอียดสูง', label: 'ระดับโปร ปรับแต่งได้ทุกจุด', image: '/vinyl_1.png' },
+  { id: 2, name: 'ดีไซน์คลาสสิก ลำโพงในตัว', desc: 'สำหรับออดิโอไฟล์ตัวจริง', label: 'ดีไซน์คลาสสิก ลำโพงในตัว', image: '/vinyl_2.png' },
   { id: 3, name: 'พกพาง่าย สไตล์กระเป๋าหิ้ว', desc: 'พกพาไปได้ทุกที่', label: 'พกพาง่าย สไตล์กระเป๋าหิ้ว', image: '/vinyl_3.png' },
-  { id: 4, name: 'ระดับโปร ปรับแต่งได้ทุกจุด', desc: 'สำหรับออดิโอไฟล์ตัวจริง', label: 'ระดับโปร ปรับแต่งได้ทุกจุด', image: '/vinyl_4.png' }
+  { id: 4, name: 'เป็นเครื่องที่ใช้งานง่าย ปรับน้อย', desc: 'เหมาะสำหรับผู้ใช้งานเริ่มต้น', label: 'เป็นเครื่องที่ใช้งานง่าย ปรับน้อย', image: '/vinyl_4.png' }
 ])
 
 // ข้อมูลสำหรับ Step 2 (ลวดลายและสี)
