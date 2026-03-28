@@ -112,11 +112,105 @@
 
             </div>
           </div>
+          <div v-else-if="currentStep === 3" class="step-container">
+            <h3 class="step-title">เพิ่มความเป็นเจ้าของ</h3>
+            
+            <div class="tools-grid-2">
+              <div class="tool-panel">
+                <h4 class="panel-title mb-4">พิมพ์ข้อความ</h4>
+                <input type="text" v-model="customText" placeholder="ใส่ข้อความที่นี่..." class="custom-input mb-3">
+                <button @click="addTextToCanvas" class="btn-primary-full" style="color: #000;">เพิ่มข้อความลงเครื่อง</button>
+              </div>
 
-          <div v-else class="step-container">
-            <h3 class="step-title">ขั้นตอนที่ {{ currentStep }}</h3>
-            <p>ยังไม่ได้ทำส่วนนี้</p>
+              <div class="tool-panel">
+                <h4 class="panel-title mb-4">ตกแต่งด้วยสติกเกอร์</h4>
+                <div class="sticker-grid">
+                  <button v-for="sticker in stickersList" :key="sticker" @click="addSticker(sticker)" class="sticker-btn">
+                    {{ sticker }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-center mt-4">
+               <button @click="deleteSelectedObject" class="btn-danger">🗑️ ลบสิ่งที่เลือก (ข้อความ/สติกเกอร์)</button>
+            </div>
           </div>
+
+          <div v-else-if="currentStep === 4" class="step-container">
+            <h3 class="step-title">ใส่รูปภาพลงบนแผ่นเสียง</h3>
+            <div class="tool-panel text-center py-5">
+              <h4 class="panel-title mb-4 text-white">อัปโหลดรูปภาพหน้าปกเพลงของคุณ</h4>
+              
+              <input type="file" accept="image/*" @change="handleVinylImageUpload" id="vinyl-upload" style="display: none;">
+              <label for="vinyl-upload" class="btn-primary-full d-inline-block cursor-pointer" style="width: auto; padding: 15px 30px; color: #000; margin-bottom: 10px;">
+                📷 เลือกรูปภาพจากเครื่อง
+              </label>
+              
+              <p class="text-white" style="font-size: 14px; opacity: 0.7;">
+                รูปภาพจะถูกตัดเป็นวงกลมและวางลงบนแผ่นเสียงอัตโนมัติ
+              </p>
+              
+              <button v-if="hasVinylImage" @click="removeVinylImage" class="btn-danger mt-3">ลบรูปภาพแผ่นเสียง</button>
+            </div>
+          </div>
+
+          <div v-else-if="currentStep === 5" class="step-container">
+            <h3 class="step-title">สรุปผลการออกแบบ</h3>
+            <div class="tool-panel">
+              <h4 class="panel-title mb-4">รายการสรุปของคุณ</h4>
+              
+              <div class="summary-details text-white" style="opacity: 0.9; line-height: 1.8;">
+                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: #444 !important;">
+                  <span>เครื่องเล่น: {{ vinylTypes[selectedType - 1]?.name || 'กำลังโหลด...' }}</span>
+                  <span>{{ vinylTypes[selectedType - 1]?.base_price || 0 }} ฿</span>
+                </div>
+                
+                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: #444 !important;">
+                  <span>ค่าปรับแต่งสีและลวดลาย</span>
+                  <span class="text-highlight">ฟรี</span>
+                </div>
+                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: #444 !important;">
+                  <span>เพิ่มข้อความ / สติกเกอร์</span>
+                  <span class="text-highlight">ฟรี</span>
+                </div>
+                
+                <div class="d-flex justify-content-between border-bottom pb-2 mb-3" style="border-color: #444 !important;">
+                  <span>พิมพ์รูปภาพลงแผ่นเสียง</span>
+                  <span>{{ hasVinylImage ? '150' : '0' }} ฿</span>
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                  <span style="font-size: 20px; color: #CDF100;">ยอดรวมโดยประมาณ</span>
+                  <span style="font-size: 24px; color: #CDF100; font-weight: 600;">
+                    {{ (vinylTypes[selectedType - 1]?.base_price || 0) + (hasVinylImage ? 150 : 0) }} ฿
+                  </span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div v-else-if="currentStep === 6" class="step-container">
+            <h3 class="step-title">เสร็จสิ้นการออกแบบ!</h3>
+            <div class="tool-panel text-center py-5">
+              <h4 class="panel-title mb-3 text-highlight" style="font-size: 28px;">เยี่ยมมาก! 🎉</h4>
+              <p class="text-white mb-5" style="opacity: 0.8;">
+                ผลงานเครื่องเล่นแผ่นเสียงของคุณพร้อมแล้ว <br>
+                คุณสามารถดาวน์โหลดรูปภาพเก็บไว้เพื่อนำไปสั่งผลิต หรือแชร์ให้เพื่อนๆ ดูได้เลย
+              </p>
+              
+              <div class="d-flex flex-column gap-3 align-items-center justify-content-center">
+                <button @click="downloadDesign" class="btn-primary-full" style="color: #000; max-width: 300px; padding: 15px;">
+                  📥 ดาวน์โหลดรูปภาพ
+                </button>
+                <button @click="saveOrderToFirebase" class="btn-primary-full mt-2" style="background-color: #333; color: #fff; max-width: 300px; padding: 15px; border: 1px solid #444;">
+                  💾 บันทึกแบบลงระบบ
+                </button>
+              </div>
+            </div>
+          </div>
+
         </transition>
 
       </div>
@@ -144,15 +238,15 @@ const vinylTypes = ref([])
 const isProductsLoading = ref(true)
 
 // ข้อมูลสำหรับ Step 2 (ลวดลายและสี - ของเดิม)
+const fixedColors = ['#FFFFFF', '#000000', '#CDF100', '#FF0000', '#0019FF','#FF6205']
 const patterns = ref(['/pattern_1.png', '/pattern_2.png', '/pattern_3.png', '/pattern_4.png'])
-const fixedColors = ['#FFFFFF', '#FF0000', '#0000FF', '#000000', '#FFF700']
 const colorParts = {
   body: 'ส่วนตัวเครื่อง',
-  side: 'ส่วนข้างเครื่อง',
+  bottom: 'ส่วนข้างเครื่อง',
   button: 'ส่วนปุ่ม',
   tonearm: 'ส่วนก้านเข็ม'
 }
-const selectedColors = ref({ body: '#FFFFFF', side: '#FFFFFF', button: '#FFFFFF', tonearm: '#FFFFFF' })
+const selectedColors = ref({ body: '#FFFFFF', bottom: '#FFFFFF', button: '#FFFFFF', tonearm: '#FFFFFF' })
 const customText = ref('')
 
 // ================= FIREBASE & FABRIC.JS LOGIC =================
