@@ -57,17 +57,12 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-// ดึงระบบ Auth มาใช้
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-} from "firebase/auth";
-// ดึงระบบ Firestore มาใช้บันทึกข้อมูล
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-// นำเข้า auth และ db จากไฟล์ตั้งค่าของเรา
-import { auth, db } from "~/utils/firebase";
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth'
+// [อัปเดต] เพิ่ม getDoc เข้ามาเพื่อใช้อ่านข้อมูล 1 รายการ
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, db } from '@/utils/firebase' 
 
 const router = useRouter();
 
@@ -91,26 +86,43 @@ const handleSubmit = async () => {
   try {
     if (isLogin.value) {
       // ================= โหมดเข้าสู่ระบบ =================
-      await signInWithEmailAndPassword(auth, email.value, password.value);
-      alert("เข้าสู่ระบบสำเร็จ!");
-      router.push("/");
+      const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
+      const user = userCredential.user
+      
+      // เมื่อล็อกอิน Auth ผ่าน ให้ไปดึงข้อมูล Profile จาก Firestore มาเช็คสิทธิ์ (Role)
+      const docRef = doc(db, 'users', user.uid)
+      const docSnap = await getDoc(docRef)
+      
+      if (docSnap.exists()) {
+        const userData = docSnap.data()
+        
+        // เช็คว่าถ้าเป็น admin ให้ไปหน้า Dashboard
+        if (userData.role === 'admin') {
+          alert("เข้าสู่ระบบแอดมินสำเร็จ!")
+          router.push('/admin')
+        } else {
+          // ถ้าเป็น player ทั่วไป ให้ไปหน้า Home
+          alert("เข้าสู่ระบบสำเร็จ!")
+          router.push('/') 
+        }
+      } else {
+        // กรณีล็อกอินผ่านแต่ไม่มีข้อมูลใน Firestore
+        alert("เข้าสู่ระบบสำเร็จ!")
+        router.push('/')
+      }
+      
     } else {
       // ================= โหมดสมัครสมาชิก =================
-      // 1. สร้างบัญชีใน Auth (เก็บรหัสผ่านอย่างปลอดภัย)
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email.value,
-        password.value,
-      );
-      const user = userCredential.user; // ได้ข้อมูล UID ของคนสมัครมา
-
-      // 2. นำ UID และ Email ไปสร้างโปรไฟล์ใน Firestore (Collection 'users')
-      await setDoc(doc(db, "users", user.uid), {
+      const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value)
+      const user = userCredential.user 
+      
+      // ค่าเริ่มต้นตอนสมัครสมาชิกใหม่ทุกคน จะได้สิทธิ์เป็น 'player' เท่านั้น
+      await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         email: user.email,
-        role: "player", // กำหนดสถานะว่าเป็นผู้เล่นทั่วไป
-        createdAt: serverTimestamp(), // เก็บเวลาที่สมัคร
-      });
+        role: 'player', 
+        createdAt: serverTimestamp() 
+      })
 
       alert("สมัครสมาชิกสำเร็จ! เข้าสู่ระบบให้อัตโนมัติ");
       router.push("/");

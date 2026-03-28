@@ -20,7 +20,7 @@
           <p class="description">เพื่อหาดีไซน์ที่ใช่สไตล์ที่ชอบ</p>
           
           <div class="btn-primary-wrapper">
-            <button class="btn-primary">START CUSTOMIZING</button>
+            <NuxtLink to="/custom" class="btn-primary">START CUSTOMIZING</NuxtLink>
           </div>
         </div>
       </section>
@@ -315,6 +315,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  text-decoration: none;
 }
 
 /* ==================== 2. Special Collection ==================== */
