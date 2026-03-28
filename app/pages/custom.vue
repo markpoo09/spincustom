@@ -12,24 +12,31 @@
 
       <div class="preview-section">
         <div class="preview-card position-relative">
-          <div class="bg-curve"></div>
+          <!-- <div class="bg-curve"></div> -->
           
           <div class="canvas-wrapper">
             <canvas ref="canvasEl"></canvas>
           </div>
 
-          <div class="product-info-block d-flex flex-column align-items-center mt-3 text-center">
-            <h3 class="product-name">{{ vinylTypes[selectedType - 1].name }}</h3>
-            <p class="product-desc">{{ vinylTypes[selectedType - 1].desc }}</p>
+          <div v-if="!isProductsLoading && vinylTypes.length > 0" class="product-info-block d-flex flex-column align-items-center mt-3 text-center">
+            <h3 class="product-name">{{ vinylTypes[selectedType - 1]?.name }}</h3>
+            <p class="product-desc">{{ vinylTypes[selectedType - 1]?.desc }}</p>
+          </div>
+          <div v-else class="product-info-block mt-3 text-center text-white">
+            <p>กำลังโหลดข้อมูลสินค้า...</p>
           </div>
         </div>
 
         <div class="nav-arrows">
           <button class="arrow-btn btn-prev" @click="prevStep" :disabled="currentStep === 1">
-            ◀
+            <div class="arrow-left">
+              <img src="/arrow_left.png" alt="Previous">
+            </div>
           </button>
           <button class="arrow-btn btn-next" @click="nextStep" :disabled="currentStep === 6">
-            ▶
+            <div class="arrow-right">
+              <img src="/arrow_right.png" alt="Next">
+            </div>
           </button>
         </div>
       </div>
@@ -39,15 +46,20 @@
         <transition name="fade" mode="out-in">
           <div v-if="currentStep === 1" class="step-container">
             <h3 class="step-title">ประเภทเครื่องเล่นแผ่นเสียง</h3>
-            <div class="grid-2x2">
-              <div v-for="(item, index) in vinylTypes" :key="index" 
+            
+            <div v-if="isProductsLoading" class="text-center text-white py-4">
+              กำลังโหลดข้อมูลจากฐานข้อมูล...
+            </div>
+            
+            <div v-else class="grid-2x2">
+              <div v-for="(item, index) in vinylTypes" :key="item.id || index" 
                    class="type-card" 
                    :class="{ active: selectedType === index + 1 }"
                    @click="selectType(index + 1)">
                 <div class="thumb-placeholder">
                   <img :src="item.image" :alt="item.name" class="type-image">
                 </div>
-                <p v-if="selectedType === index + 1" class="type-label">{{ item.label }}</p>
+                <p v-if="selectedType === index + 1" class="type-label">{{ item.label || item.name }}</p>
               </div>
             </div>
           </div>
@@ -82,16 +94,12 @@ const progressPercentage = computed(() => (currentStep.value / 6) * 100)
 const canvasEl = ref(null)
 let fCanvas = null
 
-// ข้อมูลสำหรับ Step 1
+// [แก้ไข] ข้อมูลสำหรับ Step 1 ให้เป็นตัวแปรว่างๆ รอรับจาก Firebase
 const selectedType = ref(1)
-const vinylTypes = ref([
-  { id: 1, name: 'ระดับโปร ปรับแต่งได้ทุกจุด', desc: 'เหมาะสำหรับผู้ใช้งานที่ต้องการความละเอียดสูง', label: 'ระดับโปร ปรับแต่งได้ทุกจุด', image: '/vinyl_1.png' },
-  { id: 2, name: 'ดีไซน์คลาสสิก ลำโพงในตัว', desc: 'สำหรับออดิโอไฟล์ตัวจริง', label: 'ดีไซน์คลาสสิก ลำโพงในตัว', image: '/vinyl_2.png' },
-  { id: 3, name: 'พกพาง่าย สไตล์กระเป๋าหิ้ว', desc: 'พกพาไปได้ทุกที่', label: 'พกพาง่าย สไตล์กระเป๋าหิ้ว', image: '/vinyl_3.png' },
-  { id: 4, name: 'เป็นเครื่องที่ใช้งานง่าย ปรับน้อย', desc: 'เหมาะสำหรับผู้ใช้งานเริ่มต้น', label: 'เป็นเครื่องที่ใช้งานง่าย ปรับน้อย', image: '/vinyl_4.png' }
-])
+const vinylTypes = ref([]) 
+const isProductsLoading = ref(true)
 
-// ข้อมูลสำหรับ Step 2 (ลวดลายและสี)
+// ข้อมูลสำหรับ Step 2 (ลวดลายและสี - ของเดิม)
 const patterns = ref(['/pattern_1.png', '/pattern_2.png', '/pattern_3.png', '/pattern_4.png'])
 const fixedColors = ['#FFFFFF', '#FF0000', '#0000FF', '#000000', '#FFF700']
 const colorParts = {
@@ -103,41 +111,66 @@ const colorParts = {
 const selectedColors = ref({ body: '#FFFFFF', side: '#FFFFFF', button: '#FFFFFF', tonearm: '#FFFFFF' })
 const customText = ref('')
 
-// ================= FABRIC.JS LOGIC =================
+// ================= FIREBASE & FABRIC.JS LOGIC =================
 onMounted(async () => {
+  // 1. สร้างพื้นที่ Canvas เปล่าๆ ก่อน
   fCanvas = new fabric.Canvas(canvasEl.value, {
     width: 600,
     height: 400,
     backgroundColor: '#ffffff'
   })
   
-  // โหลดรูปแผ่นเสียงตอนเริ่มเปิดหน้าเว็บ
-  await updatePreviewImage()
+  // 2. เรียกฟังก์ชันดึงข้อมูลสินค้าจาก Firebase
+  await fetchProducts()
 })
 
-// [อัปเดตใหม่] ฟังก์ชันโหลดรูปให้รองรับ Fabric v6
+// [เพิ่มใหม่] ฟังก์ชันดึงข้อมูลจาก Firebase
+const fetchProducts = async () => {
+  isProductsLoading.value = true
+  try {
+    const q = query(collection(db, 'products'), orderBy('id', 'asc'))
+    const querySnapshot = await getDocs(q)
+    
+    const loadedProducts = []
+    querySnapshot.forEach((doc) => {
+      loadedProducts.push({ docId: doc.id, ...doc.data() })
+    })
+    
+    vinylTypes.value = loadedProducts
+
+    // 3. พอได้ข้อมูลมาแล้ว ค่อยสั่งให้โชว์รูปบน Canvas
+    if(vinylTypes.value.length > 0) {
+      await updatePreviewImage()
+    }
+
+  } catch (error) {
+    console.error("ดึงข้อมูล Firebase ไม่สำเร็จ:", error)
+  } finally {
+    isProductsLoading.value = false
+  }
+}
+
+// ฟังก์ชันโหลดรูปลง Canvas
 async function updatePreviewImage() {
-  if (!fCanvas) return;
-  fCanvas.clear(); // ล้างของเก่าออกก่อน
+  if (!fCanvas || vinylTypes.value.length === 0) return;
+  fCanvas.clear(); 
   
+  // ป้องกัน Error หากข้อมูลใน Array ยังไม่มา
   const currentType = vinylTypes.value[selectedType.value - 1];
   if (!currentType || !currentType.image) return;
 
   try {
-    // ใช้ fabric.FabricImage.fromURL แบบ async/await (สำหรับ Fabric.js v6)
     const img = await fabric.FabricImage.fromURL(currentType.image, { crossOrigin: 'anonymous' });
-    
-    // คำนวณขนาดย่อขยายให้อยู่ในกรอบ 600x400 โดยให้เหลือขอบนิดๆ (คูณ 0.9)
     const scaleFactor = Math.min(600 / img.width, 400 / img.height) * 0.9;
     
     img.set({
       scaleX: scaleFactor,
       scaleY: scaleFactor,
-      left: fCanvas.width / 2, // วางกึ่งกลางแนวนอน
-      top: fCanvas.height / 2, // วางกึ่งกลางแนวตั้ง
+      left: fCanvas.width / 2, 
+      top: fCanvas.height / 2, 
       originX: 'center', 
       originY: 'center',
-      selectable: false // ไม่ให้คลิกลากรูปเครื่องเล่นได้
+      selectable: false 
     });
     
     fCanvas.add(img);
@@ -147,7 +180,6 @@ async function updatePreviewImage() {
   }
 }
 
-// เฝ้าดูว่าถ้าเปลี่ยนชนิดเครื่อง ให้โหลดภาพใหม่ทันที
 watch(selectedType, async () => {
   await updatePreviewImage();
 })
@@ -262,6 +294,14 @@ function selectType(id) { selectedType.value = id }
 .arrow-btn { background: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 0; font-size: 16px; font-weight: bold; color: #000;}
 .arrow-btn.btn-next { background: #CDF100; }
 .arrow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.arrow-left, .arrow-right {
+  width: 60px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+}
+.arrow-left img, .arrow-right img {
+  width: 100%; height: 100%;
+  object-fit: contain;
+} 
 
 /* ================= TOOLS BOTTOM AREA (คงเดิม) ================= */
 .step-container { animation: fadeIn 0.3s ease; }
