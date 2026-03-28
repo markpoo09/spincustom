@@ -65,8 +65,52 @@
           </div>
 
           <div v-else-if="currentStep === 2" class="step-container">
-             <h3 class="step-title">เลือกสีและลวดลาย</h3>
-             <div class="tool-panel">ยังไม่ได้เชื่อมต่อระบบเลือกสีจริง</div>
+            <h3 class="step-title">เลือกสีและลวดลาย</h3>
+            
+            <div v-if="selectedType !== 1" class="text-center text-white py-5">
+              <p>ขณะนี้ระบบย้อมสีและลวดลาย เปิดให้ทดสอบเฉพาะ "เครื่องเล่นรุ่นแรก" เท่านั้นครับ</p>
+              <button @click="selectType(1)" class="btn-primary mt-3" style="font-size: 16px; padding: 10px 20px;">
+                กลับไปเลือกเครื่องรุ่นแรก
+              </button>
+            </div>
+
+            <div v-else class="tools-grid-2">
+              
+              <div class="tool-panel">
+                <h4 class="panel-title mb-4">แต่งสีตามใจ</h4>
+                <div class="color-groups-wrapper">
+                  <div class="color-group mb-3" v-for="(label, partId) in colorParts" :key="partId">
+                    <p class="part-label text-highlight mb-2">{{ label }}</p>
+                    <div class="color-swatches d-flex flex-wrap gap-2 justify-content-center">
+                      <button v-for="color in fixedColors" :key="color"
+                              class="swatch" 
+                              :style="{ backgroundColor: color }"
+                              :class="{ active: selectedColors[partId] === color }"
+                              @click="applyColor(partId, color)"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="tool-panel">
+                <h4 class="panel-title mb-4">แต่งลวดลายตามใจ</h4>
+                <div class="pattern-grid">
+                  <div class="pattern-item" v-for="(pattern, index) in patterns" :key="index" @click="applyPattern(pattern, index)">
+                    <p class="pattern-label mb-1">ลายที่ {{ index + 1 }}</p>
+                    <div class="pattern-image-wrapper" :class="{ 'border-active': selectedPatternIndex === index }">
+                      <img :src="pattern" alt="Pattern" class="pattern-image">
+                    </div>
+                  </div>
+                  <div class="pattern-item" @click="applyPattern(null, -1)">
+                    <p class="pattern-label mb-1 text-white">ไม่มีลวดลาย</p>
+                    <div class="pattern-image-wrapper text-center d-flex align-items-center justify-content-center" :class="{ 'border-active': selectedPatternIndex === -1 }" style="background-color: #333;">
+                      <span style="font-size: 24px; color: #555;">✖</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
 
           <div v-else class="step-container">
