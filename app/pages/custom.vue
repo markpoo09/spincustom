@@ -20,6 +20,7 @@
           <div class="product-info-block d-flex flex-column align-items-center mt-3 text-center">
             <h3 class="product-name">{{ vinylTypes[selectedType - 1].name }}</h3>
             <p class="product-desc">{{ vinylTypes[selectedType - 1].desc }}</p>
+            <!-- <p v-if="currentStep === 2" class="live-preview-hint">● Live Preview — อัปเดตทันทีเมื่อเปลี่ยนสีหรือลวดลาย</p> -->
           </div>
         </div>
 
@@ -57,45 +58,132 @@
 
             <div class="step-content-wrapper-large">
               <div class="tool-panel">
-                <div class="preview-svg-container">
-                  <h4 class="panel-title mb-3 text-center">ตัวอย่างการปรับแต่ง</h4>
-                  <div class="svg-wrapper">
-                    <Vinyl
-                      :type="selectedType"
-                      :width="420"
-                      :height="280"
-                      :color1="selectedColors.body"
-                      :color2="selectedColors.side"
-                      :color3="selectedColors.button"
-                      :color4="selectedColors.tonearm"
-                    />
-                  </div>
-                </div>
-
-                <div class="divider-line my-4"></div>
-
                 <div class="color-selection-container">
-                  <h4 class="panel-title mb-4 text-center">แต่งสีตามใจ</h4>
+                  <h4 class="panel-title mb-4 text-center">แต่งสีตามใจ — ดูตัวอย่างได้ที่ภาพด้านบนได้เลยครับ</h4>
                   <div class="color-groups-wrapper">
-                    <div class="color-group" v-for="(label, partId) in colorParts" :key="partId">
-                      <p class="part-label">{{ label }}</p>
+
+                    <!-- ===== BODY: texture + color ===== -->
+                    <div class="color-group-block">
+                      <div class="color-group-header">
+                        <p class="part-label">ส่วนตัวเครื่อง</p>
+                        <div class="mode-toggle">
+                          <button class="mode-btn" :class="{ active: bodyMode === 'texture' }" @click="setBodyMode('texture')">ลวดลาย</button>
+                          <button class="mode-btn" :class="{ active: bodyMode === 'color' }" @click="setBodyMode('color')">สีล้วน</button>
+                        </div>
+                      </div>
+                      <div class="color-controls">
+                        <!-- texture swatches -->
+                        <template v-if="bodyMode === 'texture'">
+                          <button
+                            v-for="tex in bodyTextures"
+                            :key="tex.id"
+                            class="texture-swatch"
+                            :class="{ active: selectedTextures.body === tex.src }"
+                            @click="applyTexture('body', tex.src)"
+                            :style="{ backgroundImage: `url(${tex.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }"
+                          ></button>
+                        </template>
+                        <!-- color swatches -->
+                        <template v-else>
+                          <button
+                            v-for="color in presetColors"
+                            :key="color"
+                            class="color-swatch"
+                            :style="{ backgroundColor: color }"
+                            :class="{ active: selectedColors.body === color }"
+                            @click="applyColor('body', color)"
+                          ></button>
+                          <div class="color-divider"></div>
+                          <div class="custom-color-wrapper" :class="{ active: !presetColors.includes(selectedColors.body) }">
+                            <div v-if="!presetColors.includes(selectedColors.body)" class="custom-color-preview" :style="{ backgroundColor: selectedColors.body }"></div>
+                            <PickColor class="pick-color-input" :modelValue="selectedColors.body" @update:modelValue="(val) => applyColor('body', val)" />
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+
+                    <!-- ===== SIDE: texture + color ===== -->
+                    <div class="color-group-block">
+                      <div class="color-group-header">
+                        <p class="part-label">ส่วนข้างเครื่อง</p>
+                        <div class="mode-toggle">
+                          <button class="mode-btn" :class="{ active: sideMode === 'texture' }" @click="setSideMode('texture')">ลวดลาย</button>
+                          <button class="mode-btn" :class="{ active: sideMode === 'color' }" @click="setSideMode('color')">สีล้วน</button>
+                        </div>
+                      </div>
+                      <div class="color-controls">
+                        <template v-if="sideMode === 'texture'">
+                          <button
+                            v-for="tex in sideTextures"
+                            :key="tex.id"
+                            class="texture-swatch"
+                            :class="{ active: selectedTextures.side === tex.src }"
+                            @click="applyTexture('side', tex.src)"
+                            :style="{ backgroundImage: `url(${tex.src})`, backgroundSize: 'cover', backgroundPosition: 'center' }"
+                          ></button>
+                        </template>
+                        <template v-else>
+                          <button
+                            v-for="color in presetColors"
+                            :key="color"
+                            class="color-swatch"
+                            :style="{ backgroundColor: color }"
+                            :class="{ active: selectedColors.side === color }"
+                            @click="applyColor('side', color)"
+                          ></button>
+                          <div class="color-divider"></div>
+                          <div class="custom-color-wrapper" :class="{ active: !presetColors.includes(selectedColors.side) }">
+                            <div v-if="!presetColors.includes(selectedColors.side)" class="custom-color-preview" :style="{ backgroundColor: selectedColors.side }"></div>
+                            <PickColor class="pick-color-input" :modelValue="selectedColors.side" @update:modelValue="(val) => applyColor('side', val)" />
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+
+                    <!-- ===== BUTTON: color picker ===== -->
+                    <div class="color-group-block">
+                      <div class="color-group-header">
+                        <p class="part-label">ส่วนปุ่ม</p>
+                      </div>
                       <div class="color-controls">
                         <button
                           v-for="color in presetColors"
                           :key="color"
                           class="color-swatch"
                           :style="{ backgroundColor: color }"
-                          :class="{ active: selectedColors[partId] === color }"
-                          @click="applyColor(partId, color)"
+                          :class="{ active: selectedColors.button === color }"
+                          @click="applyColor('button', color)"
                         ></button>
                         <div class="color-divider"></div>
-                        <div class="custom-color-wrapper" :class="{ active: !presetColors.includes(selectedColors[partId]) }">
-                          <div v-if="!presetColors.includes(selectedColors[partId])" class="custom-color-preview" :style="{ backgroundColor: selectedColors[partId] }"></div>
-                          <!-- <span v-else class="custom-color-icon">🎨</span> -->
-                          <PickColor class="pick-color-input" :modelValue="selectedColors[partId]" @update:modelValue="(val) => applyColor(partId, val)" />
+                        <div class="custom-color-wrapper" :class="{ active: !presetColors.includes(selectedColors.button) }">
+                          <div v-if="!presetColors.includes(selectedColors.button)" class="custom-color-preview" :style="{ backgroundColor: selectedColors.button }"></div>
+                          <PickColor class="pick-color-input" :modelValue="selectedColors.button" @update:modelValue="(val) => applyColor('button', val)" />
                         </div>
                       </div>
                     </div>
+
+                    <!-- ===== TONEARM: color picker ===== -->
+                    <div class="color-group-block">
+                      <div class="color-group-header">
+                        <p class="part-label">ส่วนก้านเข็ม</p>
+                      </div>
+                      <div class="color-controls">
+                        <button
+                          v-for="color in presetColors"
+                          :key="color"
+                          class="color-swatch"
+                          :style="{ backgroundColor: color }"
+                          :class="{ active: selectedColors.tonearm === color }"
+                          @click="applyColor('tonearm', color)"
+                        ></button>
+                        <div class="color-divider"></div>
+                        <div class="custom-color-wrapper" :class="{ active: !presetColors.includes(selectedColors.tonearm) }">
+                          <div v-if="!presetColors.includes(selectedColors.tonearm)" class="custom-color-preview" :style="{ backgroundColor: selectedColors.tonearm }"></div>
+                          <PickColor class="pick-color-input" :modelValue="selectedColors.tonearm" @update:modelValue="(val) => applyColor('tonearm', val)" />
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
 
                   <div class="text-center mt-4">
@@ -337,7 +425,7 @@
                 <div class="order-icon">🎵</div>
                 <div class="order-detail">
                   <p class="order-title">{{ vinylTypes[selectedType - 1].name }}</p>
-                  <p class="order-sub">สีตัวเครื่อง: {{ selectedColors.body }} · สีข้าง: {{ selectedColors.side }}</p>
+                  <p class="order-sub">ลวดลายตัวเครื่อง: {{ selectedTextures.body.split('/').pop() }} · สีปุ่ม: {{ selectedColors.button }}</p>
                 </div>
                 <div class="order-price">฿{{ totalPrice.toLocaleString() }}</div>
               </div>
@@ -392,9 +480,35 @@ const vinylTypes = ref([
 ]);
 
 // Step 2
-const presetColors = ['#222222', '#F5F5F5', '#CDF100'];
-const colorParts = { body: "ส่วนตัวเครื่อง", side: "ส่วนข้างเครื่อง", button: "ส่วนปุ่ม", tonearm: "ส่วนก้านเข็ม" };
-const selectedColors = ref({ body: "#FFFFFF", side: "#FFFFFF", button: "#FFFFFF", tonearm: "#FFFFFF" });
+const presetColors = ['#222222', '#F5F5F5', '#CDF100', '#FF5C5C', '#5C9EFF', '#FFD700', '#A0522D', '#2ECC71'];
+
+const bodyTextures = [
+  { id: 'b1', src: '/textures_body-vinyl_1-1.png' },
+  { id: 'b2', src: '/textures_body-vinyl_1-2.png' },
+  { id: 'b3', src: '/textures_body-vinyl_1-3.png' },
+];
+const sideTextures = [
+  { id: 's1', src: '/bases_body-vinyl_1-1.png' },
+  { id: 's2', src: '/bases_body-vinyl_1-2.png' },
+  { id: 's3', src: '/bases_body-vinyl_1-3.png' },
+];
+
+// mode ของแต่ละ part: 'texture' หรือ 'color'
+const bodyMode = ref('texture');
+const sideMode = ref('texture');
+
+const selectedColors = ref({ body: "#FFFFFF", side: "#FFFFFF", button: "#CDF100", tonearm: "#4B4A2D" });
+const selectedTextures = ref({
+  body: '/textures_body-vinyl_1-1.png',
+  side: '/bases_body-vinyl_1-1.png',
+});
+
+function applyTexture(partId, src) {
+  selectedTextures.value[partId] = src;
+}
+
+function setBodyMode(mode) { bodyMode.value = mode; }
+function setSideMode(mode) { sideMode.value = mode; }
 
 // Step 3
 const customText = ref("");
@@ -516,17 +630,165 @@ async function updatePreviewImage() {
   }
 }
 
-function getVinylSVGString() {
-  const c1 = selectedColors.value.body, c2 = selectedColors.value.side, c3 = selectedColors.value.button, c4 = selectedColors.value.tonearm, t = selectedType.value;
-  if (t === 1) return `<svg width="617" height="430" viewBox="0 0 617 430" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="616" height="429" fill="${c1}" stroke="#4B4A2D"/><rect x="0.5" y="0.5" width="616" height="361" fill="${c2}" stroke="#4B4A2D"/><circle cx="318" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/><circle cx="318" cy="180.999" r="56.5693" fill="black"/><circle cx="318" cy="181" r="4.52555" fill="#4B4A2D"/><circle cx="558" cy="44" r="23.5" fill="white" stroke="#4B4A2D"/><circle cx="139" cy="312" r="17" fill="${c3}"/><circle cx="139" cy="312" r="23.5" stroke="#4B4A2D"/><circle cx="78" cy="312" r="17" fill="${c3}"/><circle cx="78" cy="312" r="23.5" stroke="#4B4A2D"/><path d="M558 27C567.389 27 575 34.6112 575 44C575 52.3651 568.958 59.3184 561 60.7354V233H566V263H549V233H555V60.7354C547.042 59.3184 541 52.3651 541 44C541 34.6112 548.611 27 558 27Z" fill="${c4}"/></svg>`;
-  if (t === 2) return `<svg width="617" height="430" viewBox="0 0 617 430" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="616" height="393" fill="${c1}" stroke="#4B4A2D"/><rect x="0.5" y="0.5" width="616" height="361" fill="white" stroke="#4B4A2D"/><rect x="387.5" y="0.5" width="228" height="361" fill="${c2}" stroke="#4B4A2D"/><circle cx="553" cy="312" r="17" fill="${c3}"/><circle cx="553" cy="312" r="23.5" stroke="#4B4A2D"/><circle cx="553" cy="256" r="17" fill="${c3}"/><circle cx="553" cy="256" r="23.5" stroke="#4B4A2D"/><circle cx="507" cy="312" r="12.75" fill="${c3}"/><circle cx="507" cy="312" r="17.625" stroke="#4B4A2D" stroke-width="0.75"/><circle cx="219" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/><circle cx="219" cy="180.999" r="56.5693" fill="black"/><circle cx="219" cy="181" r="4.52555" fill="#4B4A2D"/><circle cx="442" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/><path d="M442 33C451.389 33 459 40.6112 459 50C459 58.3651 452.958 65.3184 445 66.7354V239H450V269H433V239H439V66.7354C431.042 65.3184 425 58.3651 425 50C425 40.6112 432.611 33 442 33Z" fill="${c4}"/></svg>`;
-  if (t === 3) return `<svg width="418" height="430" viewBox="0 0 418 430" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="417" height="429" fill="${c1}" stroke="#4B4A2D"/><rect x="0.5" y="0.5" width="417" height="361" fill="${c2}" stroke="#4B4A2D"/><circle cx="303" cy="397" r="17" fill="${c3}"/><circle cx="303" cy="397" r="23.5" stroke="#4B4A2D"/><circle cx="119" cy="397" r="17" fill="${c3}"/><circle cx="119" cy="397" r="23.5" stroke="#4B4A2D"/><circle cx="211" cy="397" r="17" fill="${c3}"/><circle cx="211" cy="397" r="23.5" stroke="#4B4A2D"/><circle cx="200" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/><circle cx="200" cy="180.999" r="56.5693" fill="black"/><circle cx="200" cy="181" r="4.52555" fill="#4B4A2D"/><circle cx="379" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/><path d="M379 33C388.389 33 396 40.6112 396 50C396 58.3651 389.958 65.3184 382 66.7354V239H387V269H370V239H376V66.7354C368.042 65.3184 362 58.3651 362 50C362 40.6112 369.611 33 379 33Z" fill="${c4}"/></svg>`;
-  return `<svg width="418" height="430" viewBox="0 0 418 430" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="0.5" y="0.5" width="417" height="429" fill="${c1}" stroke="#4B4A2D"/><rect x="0.5" y="0.5" width="417" height="361" fill="${c2}" stroke="#4B4A2D"/><circle cx="79" cy="398" r="12.75" fill="${c3}"/><circle cx="79" cy="398" r="17.625" stroke="#4B4A2D" stroke-width="0.75"/><circle cx="200" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/><circle cx="200" cy="180.999" r="56.5693" fill="black"/><circle cx="200" cy="181" r="4.52555" fill="#4B4A2D"/><circle cx="379" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/><path d="M379 33C388.389 33 396 40.6112 396 50C396 58.3651 389.958 65.3184 382 66.7354V239H387V269H370V239H376V66.7354C368.042 65.3184 362 58.3651 362 50C362 40.6112 369.611 33 379 33Z" fill="${c4}"/></svg>`;
+// แปลง hex color → 1x1 PNG data URL (ใช้แทน texture เมื่อ mode = color)
+function colorToDataURL(hexColor) {
+  const c = document.createElement('canvas');
+  c.width = 1; c.height = 1;
+  c.getContext('2d').fillStyle = hexColor;
+  c.getContext('2d').fillRect(0, 0, 1, 1);
+  return c.toDataURL('image/png');
+}
+
+// แปลง image path → base64 data URL (แก้ปัญหา cross-origin ใน SVG Blob)
+async function imagePathToBase64(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
+      canvas.getContext('2d').drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => resolve(src); // fallback ใช้ path เดิม
+    img.src = src;
+  });
+}
+
+// สร้าง SVG string โดยรับ base64 ที่แปลงแล้ว
+function buildSVGType1(bodyB64, sideB64, c3, c4) {
+  const pid = Date.now();
+  return `<svg width="617" height="430" viewBox="0 0 617 430" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <pattern id="bodyPat${pid}" patternUnits="userSpaceOnUse" width="617" height="430">
+      <image href="${bodyB64}" x="0" y="0" width="617" height="430" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+    <pattern id="sidePat${pid}" patternUnits="userSpaceOnUse" width="617" height="361">
+      <image href="${sideB64}" x="0" y="0" width="617" height="361" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="616" height="429" fill="url(#bodyPat${pid})" stroke="#4B4A2D"/>
+  <rect x="0.5" y="0.5" width="616" height="361" fill="url(#sidePat${pid})" stroke="#4B4A2D"/>
+  <circle cx="318" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/>
+  <circle cx="318" cy="180.999" r="56.5693" fill="black"/>
+  <circle cx="318" cy="181" r="4.52555" fill="#4B4A2D"/>
+  <circle cx="558" cy="44" r="23.5" fill="white" stroke="#4B4A2D"/>
+  <circle cx="139" cy="312" r="17" fill="${c3}"/>
+  <circle cx="139" cy="312" r="23.5" stroke="#4B4A2D"/>
+  <circle cx="78" cy="312" r="17" fill="${c3}"/>
+  <circle cx="78" cy="312" r="23.5" stroke="#4B4A2D"/>
+  <path d="M558 27C567.389 27 575 34.6112 575 44C575 52.3651 568.958 59.3184 561 60.7354V233H566V263H549V233H555V60.7354C547.042 59.3184 541 52.3651 541 44C541 34.6112 548.611 27 558 27Z" fill="${c4}"/>
+</svg>`;
+}
+
+function buildSVGType2(bodyB64, sideB64, c3, c4) {
+  const pid = Date.now();
+  return `<svg width="617" height="430" viewBox="0 0 617 430" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <pattern id="bodyPat${pid}" patternUnits="userSpaceOnUse" width="617" height="430">
+      <image href="${bodyB64}" x="0" y="0" width="617" height="430" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+    <pattern id="sidePat${pid}" patternUnits="userSpaceOnUse" width="228" height="361">
+      <image href="${sideB64}" x="0" y="0" width="228" height="361" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="616" height="393" fill="url(#bodyPat${pid})" stroke="#4B4A2D"/>
+  <rect x="0.5" y="0.5" width="616" height="361" fill="white" stroke="#4B4A2D"/>
+  <rect x="387.5" y="0.5" width="228" height="361" fill="url(#sidePat${pid})" stroke="#4B4A2D"/>
+  <circle cx="553" cy="312" r="17" fill="${c3}"/>
+  <circle cx="553" cy="312" r="23.5" stroke="#4B4A2D"/>
+  <circle cx="553" cy="256" r="17" fill="${c3}"/>
+  <circle cx="553" cy="256" r="23.5" stroke="#4B4A2D"/>
+  <circle cx="507" cy="312" r="12.75" fill="${c3}"/>
+  <circle cx="507" cy="312" r="17.625" stroke="#4B4A2D" stroke-width="0.75"/>
+  <circle cx="219" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/>
+  <circle cx="219" cy="180.999" r="56.5693" fill="black"/>
+  <circle cx="219" cy="181" r="4.52555" fill="#4B4A2D"/>
+  <circle cx="442" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/>
+  <path d="M442 33C451.389 33 459 40.6112 459 50C459 58.3651 452.958 65.3184 445 66.7354V239H450V269H433V239H439V66.7354C431.042 65.3184 425 58.3651 425 50C425 40.6112 432.611 33 442 33Z" fill="${c4}"/>
+</svg>`;
+}
+
+function buildSVGType3(bodyB64, sideB64, c3, c4) {
+  const pid = Date.now();
+  return `<svg width="418" height="430" viewBox="0 0 418 430" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <pattern id="bodyPat${pid}" patternUnits="userSpaceOnUse" width="418" height="430">
+      <image href="${bodyB64}" x="0" y="0" width="418" height="430" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+    <pattern id="sidePat${pid}" patternUnits="userSpaceOnUse" width="418" height="361">
+      <image href="${sideB64}" x="0" y="0" width="418" height="361" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="417" height="429" fill="url(#bodyPat${pid})" stroke="#4B4A2D"/>
+  <rect x="0.5" y="0.5" width="417" height="361" fill="url(#sidePat${pid})" stroke="#4B4A2D"/>
+  <circle cx="303" cy="397" r="17" fill="${c3}"/>
+  <circle cx="303" cy="397" r="23.5" stroke="#4B4A2D"/>
+  <circle cx="119" cy="397" r="17" fill="${c3}"/>
+  <circle cx="119" cy="397" r="23.5" stroke="#4B4A2D"/>
+  <circle cx="211" cy="397" r="17" fill="${c3}"/>
+  <circle cx="211" cy="397" r="23.5" stroke="#4B4A2D"/>
+  <circle cx="200" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/>
+  <circle cx="200" cy="180.999" r="56.5693" fill="black"/>
+  <circle cx="200" cy="181" r="4.52555" fill="#4B4A2D"/>
+  <circle cx="379" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/>
+  <path d="M379 33C388.389 33 396 40.6112 396 50C396 58.3651 389.958 65.3184 382 66.7354V239H387V269H370V239H376V66.7354C368.042 65.3184 362 58.3651 362 50C362 40.6112 369.611 33 379 33Z" fill="${c4}"/>
+</svg>`;
+}
+
+function buildSVGType4(bodyB64, sideB64, c3, c4) {
+  const pid = Date.now();
+  return `<svg width="418" height="430" viewBox="0 0 418 430" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <pattern id="bodyPat${pid}" patternUnits="userSpaceOnUse" width="418" height="430">
+      <image href="${bodyB64}" x="0" y="0" width="418" height="430" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+    <pattern id="sidePat${pid}" patternUnits="userSpaceOnUse" width="418" height="361">
+      <image href="${sideB64}" x="0" y="0" width="418" height="361" preserveAspectRatio="xMidYMid slice"/>
+    </pattern>
+  </defs>
+  <rect x="0.5" y="0.5" width="417" height="429" fill="url(#bodyPat${pid})" stroke="#4B4A2D"/>
+  <rect x="0.5" y="0.5" width="417" height="361" fill="url(#sidePat${pid})" stroke="#4B4A2D"/>
+  <circle cx="79" cy="398" r="12.75" fill="${c3}"/>
+  <circle cx="79" cy="398" r="17.625" stroke="#4B4A2D" stroke-width="0.75"/>
+  <circle cx="200" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/>
+  <circle cx="200" cy="180.999" r="56.5693" fill="black"/>
+  <circle cx="200" cy="181" r="4.52555" fill="#4B4A2D"/>
+  <circle cx="379" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/>
+  <path d="M379 33C388.389 33 396 40.6112 396 50C396 58.3651 389.958 65.3184 382 66.7354V239H387V269H370V239H376V66.7354C368.042 65.3184 362 58.3651 362 50C362 40.6112 369.611 33 379 33Z" fill="${c4}"/>
+</svg>`;
 }
 
 async function renderVinylToCanvas() {
   if (!fCanvas) return;
-  const svgString = getVinylSVGString();
+
+  const c3 = selectedColors.value.button;
+  const c4 = selectedColors.value.tonearm;
+
+  // body: ถ้า mode = texture → แปลงรูปเป็น base64 / ถ้า mode = color → ใช้ solid color
+  let bodyB64;
+  if (bodyMode.value === 'texture') {
+    bodyB64 = await imagePathToBase64(selectedTextures.value.body);
+  } else {
+    // สร้าง 1x1 solid color data URL แทน texture
+    bodyB64 = colorToDataURL(selectedColors.value.body);
+  }
+
+  let sideB64;
+  if (sideMode.value === 'texture') {
+    sideB64 = await imagePathToBase64(selectedTextures.value.side);
+  } else {
+    sideB64 = colorToDataURL(selectedColors.value.side);
+  }
+
+  const t = selectedType.value;
+  let svgString;
+  if (t === 1) svgString = buildSVGType1(bodyB64, sideB64, c3, c4);
+  else if (t === 2) svgString = buildSVGType2(bodyB64, sideB64, c3, c4);
+  else if (t === 3) svgString = buildSVGType3(bodyB64, sideB64, c3, c4);
+  else svgString = buildSVGType4(bodyB64, sideB64, c3, c4);
+
   const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   clearBaseLayer();
@@ -551,11 +813,28 @@ watch(currentStep, async (step) => {
     await renderVinylToCanvas();
   }
 });
-watch(() => ({ ...selectedColors.value }), async () => { if (currentStep.value >= 2) await renderVinylToCanvas(); }, { deep: true });
+watch(
+  () => ({
+    ...selectedTextures.value,
+    ...selectedColors.value,
+    bodyMode: bodyMode.value,
+    sideMode: sideMode.value,
+  }),
+  async () => { if (currentStep.value >= 2) await renderVinylToCanvas(); },
+  { deep: true }
+);
 
 // ================= STEP 2 FUNCTIONS =================
 function applyColor(partId, hexColor) { selectedColors.value[partId] = hexColor.toUpperCase(); }
-function resetColors() { selectedColors.value = { body: "#FFFFFF", side: "#FFFFFF", button: "#FFFFFF", tonearm: "#FFFFFF" }; }
+function resetColors() {
+  bodyMode.value = 'texture';
+  sideMode.value = 'texture';
+  selectedTextures.value = {
+    body: '/textures_body-vinyl_1-1.png',
+    side: '/bases_body-vinyl_1-1.png',
+  };
+  selectedColors.value = { body: "#FFFFFF", side: "#FFFFFF", button: "#CDF100", tonearm: "#4B4A2D" };
+}
 
 // ================= NAVIGATION =================
 function nextStep() { if (currentStep.value < 6) currentStep.value++; }
@@ -871,7 +1150,10 @@ function resetAll() {
 
   // reset states ทั้งหมด
   selectedType.value = 1;
-  selectedColors.value = { body: "#FFFFFF", side: "#FFFFFF", button: "#FFFFFF", tonearm: "#FFFFFF" };
+  bodyMode.value = 'texture';
+  sideMode.value = 'texture';
+  selectedColors.value = { body: "#FFFFFF", side: "#FFFFFF", button: "#CDF100", tonearm: "#4B4A2D" };
+  selectedTextures.value = { body: '/textures_body-vinyl_1-1.png', side: '/bases_body-vinyl_1-1.png' };
   customText.value = "";
   activeStickerTab.value = 1;
   vinylDiscPlaced.value = false;
@@ -958,6 +1240,8 @@ function resetAll() {
 .canvas-wrapper canvas { width: 100%; height: 100%; display: block; }
 .product-info-block { z-index: 1; position: relative; width: 100%; }
 .product-name { color: #cdf100; font-size: 24px; font-weight: 500; margin: 15px 0 5px 0; text-align: center; }
+/* .live-preview-hint { color: #CDF100; font-size: 12px; margin: 6px 0 0 0; opacity: 0.75; letter-spacing: 0.3px; animation: pulseDot 2s ease-in-out infinite; } */
+@keyframes pulseDot { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 .product-desc { color: #ddd; font-size: 14px; margin: 0; text-align: center; }
 .nav-arrows { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
 .arrow-btn { background: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 0; font-size: 16px; font-weight: bold; color: #000; }
@@ -1145,4 +1429,65 @@ function resetAll() {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+.texture-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: 0.2s;
+  flex-shrink: 0;
+}
+.texture-swatch.active {
+  border-color: #CDF100;
+  box-shadow: 0 0 10px rgba(205,241,0,0.5);
+  transform: scale(1.1);
+}
+
+/* color-group-block: แทน color-group เดิม รองรับ header + controls */
+.color-group-block {
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+.color-group-block:hover {
+  background-color: rgba(0, 0, 0, 0.35);
+  border-color: rgba(205, 241, 0, 0.2);
+}
+.color-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.color-group-header .part-label { margin: 0; }
+
+/* mode toggle: ลวดลาย / สีล้วน */
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.3);
+  padding: 3px;
+  border-radius: 8px;
+}
+.mode-btn {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  font-family: 'Prompt', sans-serif;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+.mode-btn.active {
+  background: #CDF100;
+  color: #000;
+  font-weight: 600;
+}
+.mode-btn:not(.active):hover { color: #fff; }
 </style>
