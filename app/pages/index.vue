@@ -48,7 +48,8 @@
                 {{ specialData.date_range }}
               </p>
               <div class="btn-special-wrapper">
-                <button class="btn-special">START SPECIAL</button>
+                <!-- <button class="btn-special">START SPECIAL</button> -->
+                <NuxtLink to="/specialcustom" class="btn-special">START SPECIAL</NuxtLink>
               </div>
             </div>
 
@@ -287,7 +288,7 @@ onMounted(() => {
 
 /* ปุ่ม START CUSTOMIZING */
 .btn-primary-wrapper {
-  width: 487px;
+  width: min(487px, 90vw);
   height: 103px;
   background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='31' ry='31' stroke='%23FFF700' stroke-width='4' stroke-dasharray='15, 15' stroke-dashoffset='0' stroke-linecap='round'/%3e%3c/svg%3e");
   border-radius: 31px;
@@ -296,6 +297,9 @@ onMounted(() => {
   justify-content: center;
   padding: 10px;
   transition: transform 0.2s;
+}
+.btn-primary-wrapper:hover {
+  transform: scale(1.03);
 }
 
 .btn-primary {
@@ -317,6 +321,9 @@ onMounted(() => {
   cursor: pointer;
   text-decoration: none;
 }
+/* .btn-primary:hover {
+  background-color: #CDF100;
+} */
 
 /* ==================== 2. Special Collection ==================== */
 .special-collection-section {
@@ -431,6 +438,9 @@ onMounted(() => {
   transition: transform 0.2s;
   cursor: pointer;
 }
+.btn-special-wrapper:hover {
+  transform: scale(1.03);
+}
 
 .btn-special {
   width: 98%;
@@ -448,7 +458,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  pointer-events: none;
+  pointer-events: auto;  /* เปลี่ยนจาก none เป็น auto เพื่อให้คลิกได้ */
+  text-decoration: none;
 }
 
 /* ==================== 3. How it works ==================== */
@@ -476,6 +487,11 @@ onMounted(() => {
   position: relative;
   overflow: hidden;
   border: 1px solid #333;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.step-card:hover {
+  transform: translateX(8px);
+  border-left: 3px solid #FFF700;
 }
 
 .step-number-circle {
@@ -506,5 +522,11 @@ onMounted(() => {
   font-size: 6rem;
   font-weight: 700;
   color: rgba(255, 255, 255, 0.03); 
+}
+@media (max-width: 768px) {
+  .hero-elements-vinyl, .hero-elements-vinyl2,
+  .hero-elements-vinyl3, .hero-elements-vinyl4 {
+    display: none;
+  }
 }
 </style>

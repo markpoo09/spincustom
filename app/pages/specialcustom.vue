@@ -1,194 +1,246 @@
 <template>
   <div class="customizer-layout">
     <div class="container-main">
-      
       <div class="header-section text-center">
-        <p class="customizing-text text-danger">SPECIAL CUSTOMIZING</p>
-        <h1 class="title-text">รุ่นพิเศษ <span class="highlight-yellow">Limited Edition</span></h1>
-        <div class="progress-bar-container mt-3">
-            <div class="progress-bar-fill" :style="{ width: progressPercentage + '%', backgroundColor: '#ff5555' }"></div>
+        <p class="customizing-text">LIMITED EDITION</p>
+        <h1 class="title-text">
+          SPECIAL<span class="highlight-yellow">CUSTOM</span>
+        </h1>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" :style="{ width: progressPercentage + '%' }"></div>
         </div>
       </div>
 
       <div class="preview-section">
-        <div class="preview-card position-relative" style="border: 2px solid #ff5555;">
+        <div class="preview-card position-relative">
           <div class="bg-curve"></div>
-          
           <div class="canvas-wrapper">
             <canvas ref="canvasEl"></canvas>
           </div>
-
-          <div v-if="!isProductsLoading && vinylTypes.length > 0" class="product-info-block d-flex flex-column align-items-center mt-3 text-center">
-            <h3 class="product-name" style="color: #ff5555;">★ {{ vinylTypes[selectedType - 1]?.name }} ★</h3>
-            <p class="product-desc">{{ vinylTypes[selectedType - 1]?.desc }}</p>
-          </div>
-          <div v-else class="product-info-block mt-3 text-center text-white">
-            <p>กำลังโหลดข้อมูลรุ่นพิเศษ...</p>
+          <div class="product-info-block d-flex flex-column align-items-center mt-3 text-center">
+            <h3 class="product-name text-red">{{ activeCollection?.campaign_name || 'Loading...' }}</h3>
+            <p class="product-desc">{{ activeCollection?.desc || 'รุ่นพิเศษ Limited Edition' }}</p>
           </div>
         </div>
 
         <div class="nav-arrows">
-          <button class="arrow-btn btn-prev" @click="prevStep" :disabled="currentStep === 1">
-            <div class="arrow-left">
-              <img src="/arrow_left.png" alt="Previous">
-            </div>
-          </button>
-          <button class="arrow-btn btn-next" @click="nextStep" :disabled="currentStep === 6" style="background-color: #ff5555; color: white;">
-            <div class="arrow-right">
-              <img src="/arrow_right.png" alt="Next">
-            </div>
-          </button>
+          <button class="arrow-btn btn-prev" @click="prevStep" :disabled="currentStep === 1">◀</button>
+          <button class="arrow-btn btn-next" @click="nextStep" :disabled="currentStep === 5">▶</button>
         </div>
       </div>
 
       <div class="tools-section">
-        
         <transition name="fade" mode="out-in">
-          
+
           <div v-if="currentStep === 1" class="step-container">
-            <h3 class="step-title" style="color: #ff5555;">เลือกรุ่นพิเศษ</h3>
-            
-            <div v-if="isProductsLoading" class="text-center text-white py-4">
-              กำลังค้นหาเครื่องเล่นรุ่นลิมิเต็ด...
-            </div>
-            
+            <h3 class="step-title">เลือกคอลเลกชันพิเศษ</h3>
+            <div v-if="isLoading" class="text-center text-white">กำลังโหลดข้อมูล...</div>
             <div v-else class="grid-2x2">
-              <div v-for="(item, index) in vinylTypes" :key="item.id || index" 
-                   class="type-card special-card" 
-                   :class="{ active: selectedType === index + 1 }"
-                   @click="selectType(index + 1)">
+              <div
+                v-for="(item, index) in specialCollections"
+                :key="item.id"
+                class="type-card"
+                :class="{ active: selectedIndex === index }"
+                @click="selectCollection(index)"
+              >
                 <div class="thumb-placeholder">
-                  <img :src="item.image" :alt="item.name" class="type-image">
+                  <img :src="item.image" :alt="item.campaign_name" class="type-image" />
                 </div>
-                <p v-if="selectedType === index + 1" class="type-label" style="color: #ff5555;">{{ item.label || item.name }}</p>
+                <p v-if="selectedIndex === index" class="type-label">{{ item.campaign_name }}</p>
               </div>
             </div>
           </div>
 
           <div v-else-if="currentStep === 2" class="step-container">
-            <h3 class="step-title" style="color: #ff5555;">ออกแบบลวดลายพิเศษ</h3>
-            
-            <div v-if="selectedType !== 1" class="text-center text-white py-5">
-              <p>ขณะนี้ระบบย้อมสีเปิดให้ทดสอบเฉพาะรุ่นแรกเท่านั้นครับ</p>
-              <button @click="selectType(1)" class="btn-primary mt-3" style="background-color: #ff5555;">
-                กลับไปเลือกรุ่นแรก
-              </button>
-            </div>
-
-            <div v-else class="tools-grid-2">
-              <div class="tool-panel">
-                <h4 class="panel-title mb-4">แต่งสีตามใจ</h4>
-                <div class="color-groups-wrapper">
-                  <div class="color-group mb-3" v-for="(label, partId) in colorParts" :key="partId">
-                    <p class="part-label mb-2" style="color: #ff5555;">{{ label }}</p>
-                    <div class="color-swatches d-flex flex-wrap gap-2 justify-content-center">
-                      <button v-for="color in fixedColors" :key="color"
-                              class="swatch" 
-                              :style="{ backgroundColor: color }"
-                              :class="{ active: selectedColors[partId] === color }"
-                              @click="applyColor(partId, color)"></button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="tool-panel">
-                <h4 class="panel-title mb-4">แต่งลวดลายตามใจ</h4>
-                <div class="pattern-grid">
-                  <div class="pattern-item" v-for="(pattern, index) in patterns" :key="index" @click="applyPattern(pattern, index)">
-                    <p class="pattern-label mb-1" style="color: #ff5555;">ลายที่ {{ index + 1 }}</p>
-                    <div class="pattern-image-wrapper" :class="{ 'border-active-special': selectedPatternIndex === index }">
-                      <img :src="pattern" alt="Pattern" class="pattern-image">
-                    </div>
-                  </div>
-                  <div class="pattern-item" @click="applyPattern(null, -1)">
-                    <p class="pattern-label mb-1 text-white">ไม่มีลวดลาย</p>
-                    <div class="pattern-image-wrapper text-center d-flex align-items-center justify-content-center" :class="{ 'border-active-special': selectedPatternIndex === -1 }" style="background-color: #333;">
-                      <span style="font-size: 24px; color: #555;">✖</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div v-else-if="currentStep === 3" class="step-container">
-            <h3 class="step-title" style="color: #ff5555;">เพิ่มความเป็นเจ้าของ</h3>
-            
+            <h3 class="step-title">เพิ่มความเป็นเอกลักษณ์</h3>
             <div class="tools-grid-2">
-              <div class="tool-panel">
-                <h4 class="panel-title mb-4">พิมพ์ข้อความ</h4>
-                <input type="text" v-model="customText" placeholder="ใส่ข้อความที่นี่..." class="custom-input mb-3">
-                <button @click="addTextToCanvas" class="btn-primary-full" style="background-color: #ff5555; color: #fff;">เพิ่มข้อความลงเครื่อง</button>
+              <div class="tool-panel text-left">
+                <h4 class="panel-title-left mb-4">เขียนชื่อของคุณ</h4>
+                <input type="text" v-model="customText" placeholder="พิมพ์ชื่อของคุณ..." class="custom-input mb-4">
+                <div class="d-flex gap-2">
+                  <button @click="removeTextFromCanvas" class="btn-dark-grey flex-fill">ลบชื่อ</button>
+                  <button @click="addTextToCanvas" class="btn-yellow flex-fill">ยืนยัน</button>
+                </div>
               </div>
-
-              <div class="tool-panel">
-                <h4 class="panel-title mb-4">ตกแต่งด้วยสติกเกอร์</h4>
-                <div class="sticker-grid">
-                  <button v-for="sticker in stickersList" :key="sticker" @click="addSticker(sticker)" class="sticker-btn special-btn">
-                    {{ sticker }}
-                  </button>
+              <div class="tool-panel text-left">
+                <h4 class="panel-title-left mb-4">สติกเกอร์รุ่นพิเศษ</h4>
+                <div v-if="isStickersLoading" class="text-center text-white">กำลังโหลดสติกเกอร์...</div>
+                <div v-else class="sticker-grid-3x2">
+                  <div v-for="sticker in specialStickers" :key="sticker.id" class="sticker-box" @click="addStickerToCanvas(sticker)">
+                    <img :src="sticker.image" class="sticker-img" />
+                  </div>
                 </div>
               </div>
             </div>
             <div class="text-center mt-4">
-               <button @click="deleteSelectedObject" class="btn-danger">🗑️ ลบสิ่งที่เลือก</button>
+              <button @click="deleteSelectedObject" class="btn-danger-outline">ลบสิ่งที่เลือกในภาพ</button>
+            </div>
+          </div>
+
+          <div v-else-if="currentStep === 3" class="step-container">
+            <h3 class="step-title">วางแผ่นเสียงและปรับแต่ง</h3>
+            <div class="tools-grid-2">
+
+              <div class="tool-panel text-left">
+                <h4 class="panel-title-left mb-3">แผ่นเสียง</h4>
+                <div v-if="!vinylDiscPlaced" class="place-disc-area">
+                  <div class="disc-preview-static">
+                    <svg viewBox="0 0 200 200" width="120" height="120">
+                      <circle cx="100" cy="100" r="98" fill="#111" stroke="#444" stroke-width="2"/>
+                      <circle cx="100" cy="100" r="80" fill="none" stroke="#222" stroke-width="1.5"/>
+                      <circle cx="100" cy="100" r="65" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+                      <circle cx="100" cy="100" r="50" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+                      <circle cx="100" cy="100" r="35" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
+                      <circle cx="100" cy="100" r="6" fill="#CDF100"/>
+                    </svg>
+                  </div>
+                  <p class="hint-text">กดปุ่มด้านล่างเพื่อวางแผ่นเสียงบนเครื่อง</p>
+                  <button @click="placeVinylDisc" class="btn-yellow" style="width:100%">วางแผ่นเสียง</button>
+                </div>
+
+                <div v-else class="placed-controls">
+                  <div class="status-badge">วางแผ่นเสียงแล้ว — ลากเพื่อย้ายตำแหน่ง</div>
+                  <div class="divider-line"></div>
+                  <h5 class="sub-label">รูปภาพบนแผ่น</h5>
+                  <label class="upload-box" :class="{ 'has-file': discImageURL }">
+                    <input type="file" accept="image/*" @change="handleDiscImageUpload" hidden />
+                    <div v-if="!discImageURL" class="upload-inner">
+                      <span>คลิกเพื่ออัปโหลดรูป</span>
+                      <span class="upload-hint">PNG, JPG (จะถูก crop เป็นวงกลม)</span>
+                    </div>
+                    <div v-else class="upload-preview-wrap">
+                      <img :src="discImageURL" class="upload-preview-img" />
+                      <span class="replace-text">คลิกเพื่อเปลี่ยนรูป</span>
+                    </div>
+                  </label>
+                  <button v-if="discImageURL" @click="applyImageToDisc" class="btn-yellow" style="width:100%;margin-top:8px">ใช้รูปนี้บนแผ่นเสียง</button>
+                  <button @click="removeVinylDisc" class="btn-danger-outline" style="width:100%;margin-top:8px">ลบแผ่นเสียง</button>
+                </div>
+              </div>
+
+              <div class="tool-panel text-left">
+                <h4 class="panel-title-left mb-3">เสียงประกอบ</h4>
+                <label class="upload-box" :class="{ 'has-file': audioFile }">
+                  <input type="file" accept="audio/*" @change="handleAudioUpload" hidden />
+                  <div v-if="!audioFile" class="upload-inner">
+                    <span>คลิกเพื่ออัปโหลดเสียง</span>
+                    <span class="upload-hint">MP3, WAV, OGG</span>
+                  </div>
+                  <div v-else class="upload-inner">
+                    <span class="text-lime">{{ audioFile.name }}</span>
+                    <span class="upload-hint">คลิกเพื่อเปลี่ยนไฟล์</span>
+                  </div>
+                </label>
+                <div v-if="audioURL" style="margin-top:12px">
+                  <audio ref="audioPreviewEl" :src="audioURL" controls class="audio-ctrl"></audio>
+                </div>
+                <div v-if="!audioFile" class="hint-text" style="margin-top:12px">เพิ่มเสียงเพื่อให้แผ่นหมุนใน Step ถัดไป</div>
+              </div>
+
             </div>
           </div>
 
           <div v-else-if="currentStep === 4" class="step-container">
-            <h3 class="step-title" style="color: #ff5555;">ใส่รูปภาพลงบนแผ่นเสียง</h3>
-            <div class="tool-panel text-center py-5">
-              <h4 class="panel-title mb-4 text-white">อัปโหลดรูปภาพหน้าปกเพลงของคุณ</h4>
-              <input type="file" accept="image/*" @change="handleVinylImageUpload" id="vinyl-upload" style="display: none;">
-              <label for="vinyl-upload" class="btn-primary-full d-inline-block cursor-pointer" style="background-color: #ff5555; color: #fff; width: auto; padding: 15px 30px; margin-bottom: 10px;">
-                📷 เลือกรูปภาพจากเครื่อง
-              </label>
-              <p class="text-white" style="font-size: 14px; opacity: 0.7;">รูปภาพจะถูกตัดเป็นวงกลมและวางลงบนแผ่นเสียงอัตโนมัติ</p>
-              <button v-if="hasVinylImage" @click="removeVinylImage" class="btn-danger mt-3">ลบรูปภาพแผ่นเสียง</button>
+            <h3 class="step-title">แผ่นเสียงหมุน</h3>
+            <audio ref="audioPlayerEl" v-if="audioURL" :src="audioURL" @ended="isPlaying = false" @timeupdate="updateProgress"></audio>
+
+            <div class="player-center">
+              <div class="turntable-stage">
+                <div class="spinning-disc" :class="{ playing: isPlaying }">
+                  <svg viewBox="0 0 300 300" width="260" height="260">
+                    <circle cx="150" cy="150" r="148" fill="#111" stroke="#333" stroke-width="2"/>
+                    <circle cx="150" cy="150" r="130" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+                    <circle cx="150" cy="150" r="112" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+                    <circle cx="150" cy="150" r="95" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+                    <circle cx="150" cy="150" r="78" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
+                    <clipPath id="spinLabelClip"><circle cx="150" cy="150" r="55"/></clipPath>
+                    <circle cx="150" cy="150" r="55" fill="#222"/>
+                    <image v-if="discImageURL" :href="discImageURL" x="95" y="95" width="110" height="110" clip-path="url(#spinLabelClip)" preserveAspectRatio="xMidYMid slice"/>
+                    <circle cx="150" cy="150" r="7" fill="#CDF100"/>
+                  </svg>
+                  <div class="disc-shimmer"></div>
+                </div>
+                <div class="eq-bars" :class="{ active: isPlaying }">
+                  <span v-for="i in 9" :key="i" class="eq-bar" :style="{ animationDelay: (i * 0.08) + 's' }"></span>
+                </div>
+              </div>
+
+              <div class="player-controls">
+                <div class="progress-track" @click="seekAudio">
+                  <div class="progress-fill" :style="{ width: audioProgress + '%' }"></div>
+                </div>
+                <div class="time-labels">
+                  <span>{{ formatTime(currentTime) }}</span>
+                  <span>{{ formatTime(audioDuration) }}</span>
+                </div>
+                <div class="control-btns">
+                  <button class="ctrl-btn" @click="togglePlay" :disabled="!audioURL"><span>{{ isPlaying ? '⏸' : '▶' }}</span></button>
+                  <button class="ctrl-btn" @click="stopAudio" :disabled="!audioURL">⏹</button>
+                </div>
+              </div>
             </div>
           </div>
 
           <div v-else-if="currentStep === 5" class="step-container">
-            <h3 class="step-title" style="color: #ff5555;">สรุปผลการออกแบบ</h3>
-            <div class="tool-panel">
-              <h4 class="panel-title mb-4">รายการสรุปของคุณ</h4>
-              <div class="summary-details text-white" style="opacity: 0.9; line-height: 1.8;">
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: #444 !important;">
-                  <span>เครื่องเล่นรุ่นพิเศษ: {{ vinylTypes[selectedType - 1]?.name || 'กำลังโหลด...' }}</span>
-                  <span>{{ vinylTypes[selectedType - 1]?.base_price || 0 }} ฿</span>
+            <h3 class="step-title">สรุปและดาวน์โหลด</h3>
+
+            <div class="tools-grid-2">
+              <div class="tool-panel text-left">
+                <h4 class="panel-title-left mb-4"> สรุปราคา</h4>
+                <div class="price-list">
+                  <div class="price-row">
+                    <span>{{ activeCollection?.campaign_name || 'เครื่องเล่นแผ่นเสียง (Special Edition)' }}</span>
+                    <span class="price-val">฿{{ (activeCollection?.base_price || 0).toLocaleString() }}</span>
+                  </div>
+                  <div class="price-row" v-if="discImageURL">
+                    <span>การพิมพ์รูปบนแผ่นเสียง</span><span class="price-val">฿500</span>
+                  </div>
+                  <div class="price-row" v-for="(sticker, idx) in placedStickers" :key="idx">
+                    <span>สติกเกอร์รุ่นพิเศษ (x1)</span>
+                    <span class="price-val">฿{{ (sticker.stickerPrice || 50).toLocaleString() }}</span>
+                  </div>
+                  <div class="price-row" v-if="hasCustomName">
+                    <span>ชื่อ Custom</span><span class="price-val">฿200</span>
+                  </div>
+                  <div class="price-divider"></div>
+                  <div class="price-row total-row">
+                    <span>รวมทั้งหมด</span>
+                    <span class="price-total text-red">฿{{ totalPrice.toLocaleString() }}</span>
+                  </div>
                 </div>
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-2" style="border-color: #444 !important;">
-                  <span>ค่าปรับแต่งสีและลวดลาย</span>
-                  <span style="color: #ff5555;">ฟรี</span>
+              </div>
+
+              <div class="tool-panel text-left">
+                <h4 class="panel-title-left mb-4"> ดาวน์โหลดผลงาน</h4>
+                <div class="download-preview mb-3">
+                  <canvas ref="thumbCanvasEl" width="300" height="200" class="thumb-canvas"></canvas>
                 </div>
-                <div class="d-flex justify-content-between border-bottom pb-2 mb-3" style="border-color: #444 !important;">
-                  <span>พิมพ์รูปภาพลงแผ่นเสียง</span>
-                  <span>{{ hasVinylImage ? '150' : '0' }} ฿</span>
-                </div>
-                <div class="d-flex justify-content-between mt-4">
-                  <span style="font-size: 20px; color: #ff5555;">ยอดรวมโดยประมาณ</span>
-                  <span style="font-size: 24px; color: #ff5555; font-weight: 600;">
-                    {{ (vinylTypes[selectedType - 1]?.base_price || 0) + (hasVinylImage ? 150 : 0) }} ฿
-                  </span>
-                </div>
+                <button @click="downloadCanvas" class="btn-yellow" style="width:100%;margin-bottom:8px">ดาวน์โหลดรูปภาพ (PNG)</button>
+                <button @click="saveSpecialOrder" class="btn-yellow" style="width:100%;margin-bottom:8px; background-color: #ff3b3b; color: #fff;" :disabled="isSavingOrder">
+                  {{ isSavingOrder ? 'กำลังบันทึก...' : ' บันทึกออเดอร์ลงระบบ' }}
+                </button>
+                <button @click="shareDesign" class="btn-dark-grey" style="width:100%">คัดลอก Link แชร์</button>
+                <div v-if="copySuccess" class="share-success text-red"> คัดลอก URL แล้ว!</div>
               </div>
             </div>
-          </div>
 
-          <div v-else-if="currentStep === 6" class="step-container">
-            <h3 class="step-title" style="color: #ff5555;">เสร็จสิ้นการออกแบบ!</h3>
-            <div class="tool-panel text-center py-5">
-              <h4 class="panel-title mb-3" style="font-size: 28px; color: #ff5555;">เยี่ยมมาก! 🎉</h4>
-              <p class="text-white mb-5" style="opacity: 0.8;">ผลงานเครื่องเล่นแผ่นเสียงรุ่นลิมิเต็ดของคุณพร้อมแล้ว</p>
-              <div class="d-flex flex-column gap-3 align-items-center justify-content-center">
-                <button @click="downloadDesign" class="btn-primary-full" style="background-color: #ff5555; color: #fff; max-width: 300px; padding: 15px;">
-                  📥 ดาวน์โหลดรูปภาพ
-                </button>
-                <button @click="saveOrderToFirebase" class="btn-primary-full mt-2" style="background-color: #333; color: #fff; max-width: 300px; padding: 15px; border: 1px solid #ff5555;">
-                  💾 บันทึกแบบลงระบบ
-                </button>
+            <div class="order-card" style="border-color: rgba(255, 59, 59, 0.4);">
+              <div class="order-card-inner">
+                <div class="order-icon">⭐</div>
+                <div class="order-detail">
+                  <p class="order-title text-red">{{ activeCollection?.campaign_name || 'Limited Edition' }}</p>
+                  <p class="order-sub">รุ่นพิเศษ (ดีไซน์คงที่)</p>
+                </div>
+                <div class="order-price text-red">฿{{ totalPrice.toLocaleString() }}</div>
               </div>
+            </div>
+
+            <div class="restart-section">
+              <div class="restart-divider"><span class="restart-divider-text">หรือ</span></div>
+              <button @click="resetAll" class="btn-restart" style="color: #ff3b3b; border-color: #ff3b3b;">
+                <span>ออกแบบใหม่อีกครั้ง</span>
+              </button>
+              <p class="restart-hint">เริ่มต้นใหม่ตั้งแต่ Step 1 — การออกแบบปัจจุบันจะถูกล้าง</p>
             </div>
           </div>
 
@@ -199,299 +251,504 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue' 
-import * as fabric from 'fabric'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
-import { db } from '@/utils/firebase'
+import { ref, onMounted, computed, watch, nextTick } from "vue";
+import * as fabric from "fabric";
+import { collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '@/utils/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { useRouter } from 'vue-router';
 
-// ================= STATE =================
-const currentStep = ref(1)
-const progressPercentage = computed(() => (currentStep.value / 6) * 100)
-const canvasEl = ref(null)
-let fCanvas = null
+const router = useRouter();
 
-// [แก้ไขดึงข้อมูลจาก special_collections]
-const selectedType = ref(1)
-const vinylTypes = ref([]) 
-const isProductsLoading = ref(true)
+// ================= STATE พื้นฐาน =================
+const currentStep = ref(1);
+const progressPercentage = computed(() => (currentStep.value / 5) * 100); // อัปเดตตัวหารเป็น 5
+const canvasEl = ref(null);
+let fCanvas = null;
+const isLoggedIn = ref(false);
+const isSavingOrder = ref(false);
 
-const colorParts = {
-  'turntable-body-side': 'ฐานเครื่องล่าง',
-  'turntable-body-top': 'ตัวเครื่องด้านบน',
-  'turntable-tonearm': 'ก้านเข็ม (Tonearm)',
-  'turntable-platter': 'จานหมุน (Platter)',
-  'turntable-buttons': 'ปุ่มกด'
-}
-const fixedColors = ['#FFFFFF', '#FF0000', '#0000FF', '#000000', '#FFF700', '#FF00FF', '#00FFFF'] // เพิ่มสีพิเศษ
-const selectedColors = ref({
-  'turntable-body-side': '#FFFFFF', 'turntable-body-top': '#FFFFFF', 'turntable-tonearm': '#FFFFFF',
-  'turntable-platter': '#000000', 'turntable-buttons': '#CCCCCC'
-})
+const stickerCount = ref(0);
+const canvasObjectVersion = ref(0); 
 
-const patterns = ref(['/pattern_1.png', '/pattern_2.png', '/pattern_3.png', '/pattern_4.png'])
-const selectedPatternIndex = ref(-1) 
-let currentPatternOverlayObj = null;
+// ================= ข้อมูลแบบ Local (Hardcode) =================
+const isLoading = ref(false);
+const selectedIndex = ref(0);
 
-const customText = ref('')
-const stickersList = ['💎', '👑', '🌟', '🚀', '🔥', '🏆', '💯', '💰'] // เปลี่ยนสติกเกอร์ให้ดู Exclusive
-
-// ================= FIREBASE LOGIC =================
-onMounted(async () => {
-  fCanvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400, backgroundColor: '#ffffff' })
-  await fetchProducts()
-})
-
-const fetchProducts = async () => {
-  isProductsLoading.value = true
-  try {
-    // เปลี่ยนจาก 'products' เป็น 'special_collections'
-    const q = query(collection(db, 'special_collections'), orderBy('id', 'asc'))
-    const querySnapshot = await getDocs(q)
-    
-    const loadedProducts = []
-    querySnapshot.forEach((doc) => {
-      loadedProducts.push({ docId: doc.id, ...doc.data() })
-    })
-    
-    vinylTypes.value = loadedProducts
-
-    if(vinylTypes.value.length > 0) {
-      await loadAndComposeTurntable() 
-    }
-  } catch (error) {
-    console.error("ดึงข้อมูล Firebase ไม่สำเร็จ:", error)
-  } finally {
-    isProductsLoading.value = false
+// ข้อมูลเครื่องเล่น Limited 2 รุ่น
+const specialCollections = ref([
+  {
+    id: 1,
+    campaign_name: "RED HOT CHILI PEPPERS",
+    desc: "รุ่นพิเศษ Limited Edition ลาย RHCP",
+    image: "/special_vinyl_1.png",
+    base_price: 5900,
+  },
+  {
+    id: 2,
+    campaign_name: "BLUE & GREY EDITION",
+    desc: "รุ่นพิเศษ ดีไซน์โมเดิร์นสีน้ำเงิน-เทา",
+    image: "/special_vinyl_2.png",
+    base_price: 6500,
   }
-}
+]);
 
-// ================= FABRIC.JS LOGIC =================
-async function loadAndComposeTurntable() {
-  if (!fCanvas) return;
-  fCanvas.clear(); 
-  const currentType = vinylTypes.value[selectedType.value - 1];
-  if (!currentType) return;
+const isStickersLoading = ref(true);
+const specialStickers = ref([]);
 
-  let layers = [];
-  let geometricLayers = [];
+const activeCollection = computed(() => specialCollections.value[selectedIndex.value] || null);
 
-  if (selectedType.value === 1) {
-    layers = [
-      { id: 'turntable-body-side', url: '/bottom_vinyle_1.png', zIndex: 0, scale: 0.9 }, 
-      { id: 'turntable-body-top', url: '/body_vinyle_1.png', zIndex: 1, scale: 0.9 },   
-      { id: 'turntable-tonearm', url: '/tonearm_vinyl_3.png', zIndex: 2, scale: 0.9 }   
-    ];
-    geometricLayers = [
-      { id: 'turntable-platter', type: 'circle', radius: 100, color: '#000000', zIndex: 1.5, left: 300, top: 200, originX: 'center', originY: 'center' },
-      { id: 'turntable-buttons', type: 'circle', radius: 15, color: '#CCCCCC', zIndex: 3, left: 100, top: 310, originX: 'center', originY: 'center' },
-      { id: 'turntable-buttons', type: 'circle', radius: 15, color: '#CCCCCC', zIndex: 3, left: 150, top: 310, originX: 'center', originY: 'center' }
-    ];
-  } else {
-    layers = [{ id: 'turntable-full', url: currentType.image || '/vinyl_1.png', zIndex: 0, scale: 0.9 }];
-  }
+const customText = ref("");
 
-  const loadLayerImage = (layer) => {
-    return fabric.FabricImage.fromURL(layer.url, { crossOrigin: 'anonymous' }).then((img) => {
-      const scaleFactor = Math.min(600 / img.width, 400 / img.height) * layer.scale;
-      img.set({
-        id: layer.id, scaleX: scaleFactor, scaleY: scaleFactor, left: fCanvas.width / 2, top: fCanvas.height / 2,
-        originX: 'center', originY: 'center', selectable: false 
-      });
-      fCanvas.insertAt(img, layer.zIndex);
-      return img;
-    });
-  }
+// Step 3 Refs (จาก Step 4 เดิม)
+const vinylDiscPlaced = ref(false);
+const discImageURL = ref(null);
+const discImageFile = ref(null);
+const audioFile = ref(null);
+const audioURL = ref(null);
+const audioPreviewEl = ref(null);
 
-  const loadLayerGeometric = (layer) => {
-    let shape = new fabric.Circle({
-      id: layer.id, radius: layer.radius, fill: layer.color, left: layer.left, top: layer.top,
-      originX: layer.originX || 'left', originY: layer.originY || 'top', selectable: false
-    });
-    fCanvas.insertAt(shape, layer.zIndex);
-    return shape;
-  }
+// Step 4 Refs (จาก Step 5 เดิม)
+const isPlaying = ref(false);
+const audioPlayerEl = ref(null);
+const audioProgress = ref(0);
+const currentTime = ref(0);
+const audioDuration = ref(0);
 
-  try {
-    await Promise.all([...layers.map(loadLayerImage), ...geometricLayers.map(loadLayerGeometric)]);
-    fCanvas.renderAll();
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
+// Step 5 Refs (จาก Step 6 เดิม)
+const thumbCanvasEl = ref(null);
+const copySuccess = ref(false);
 
-function applyColor(partId, hexColor) {
-  selectedColors.value[partId] = hexColor;
-  const objects = fCanvas.getObjects().filter(o => o.id === partId);
-  objects.forEach(obj => {
-    if (obj instanceof fabric.FabricImage) {
-      if (hexColor === '#FFFFFF') { obj.filters = []; } 
-      else { obj.filters = [new fabric.filters.BlendColor({ color: hexColor, mode: 'tint', alpha: 0.6 })]; }
-      obj.applyFilters();
-    } else { obj.set('fill', hexColor); }
+const placedStickers = computed(() => {
+  stickerCount.value; canvasObjectVersion.value;
+  return fCanvas ? fCanvas.getObjects().filter(o => o.id === 'custom-sticker') : [];
+});
+
+const hasCustomName = computed(() => {
+  canvasObjectVersion.value;
+  return fCanvas ? fCanvas.getObjects().some(o => o.id === 'custom-name-text') : false;
+});
+
+const totalPrice = computed(() => {
+  let total = activeCollection.value?.base_price || 5900;
+  if (discImageURL.value) total += 500;
+  if (hasCustomName.value) total += 200;
+  placedStickers.value.forEach(s => {
+    total += (typeof s.stickerPrice === 'number' ? s.stickerPrice : 50);
   });
-  fCanvas.renderAll();
-}
+  return total;
+});
 
-async function applyPattern(patternUrl, index) {
-  if (!fCanvas) return;
-  selectedPatternIndex.value = index;
-  if (currentPatternOverlayObj) { fCanvas.remove(currentPatternOverlayObj); currentPatternOverlayObj = null; }
-  if (!patternUrl) { fCanvas.renderAll(); return; }
+// ================= ฟังก์ชันโหลดสติกเกอร์ =================
+const fetchSpecialData = async () => {
+  isStickersLoading.value = true;
+  try {
+    const qSticker = query(collection(db, 'stickers'), where('type', '==', 3));
+    const snapSticker = await getDocs(qSticker);
+    const stickers = [];
+    snapSticker.forEach(doc => stickers.push({ id: doc.id, ...doc.data() }));
+    specialStickers.value = stickers;
+  } catch (error) {
+    console.error("Error fetching special stickers:", error);
+  } finally {
+    isStickersLoading.value = false;
+  }
+};
 
-  const bodyTop = fCanvas.getObjects().find(o => o.id === 'turntable-body-top');
-  if (!bodyTop) return;
+// ================= FABRIC.JS & UI LOGIC =================
+onMounted(async () => {
+  onAuthStateChanged(auth, (user) => { isLoggedIn.value = !!user; });
+  fCanvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400, backgroundColor: '#ffffff' });
+  await fetchSpecialData();
+  await updatePreviewImage();
+});
+
+// ดึงรูปภาพเครื่องเล่นมาแสดงเป็นพื้นหลังแบบแก้ไขไม่ได้
+async function updatePreviewImage() {
+  if (!fCanvas || !activeCollection.value) return;
+  
+  const imgUrl = activeCollection.value.image;
+  if (!imgUrl) return;
 
   try {
-    const patImg = await fabric.FabricImage.fromURL(patternUrl, { crossOrigin: 'anonymous' });
-    patImg.set({
-      scaleX: bodyTop.scaleX, scaleY: bodyTop.scaleY, left: bodyTop.left, top: bodyTop.top,
-      originX: 'center', originY: 'center', opacity: 0.5, selectable: false, id: 'pattern-overlay'
+    const img = await fabric.FabricImage.fromURL(imgUrl, { crossOrigin: 'anonymous' });
+    const scaleFactor = Math.min(600 / img.width, 400 / img.height) * 0.9;
+    
+    // ลบรูปเครื่องเดิมออกก่อนใส่รูปใหม่
+    const oldBase = fCanvas.getObjects().find(o => o.id === 'base-vinyl');
+    if (oldBase) fCanvas.remove(oldBase);
+
+    img.set({ 
+      scaleX: scaleFactor, scaleY: scaleFactor, 
+      left: fCanvas.width / 2, top: fCanvas.height / 2, 
+      originX: 'center', originY: 'center', 
+      selectable: false, evented: false, 
+      id: 'base-vinyl' 
     });
-    fCanvas.insertAt(patImg, 1.1);
-    currentPatternOverlayObj = patImg;
+    fCanvas.insertAt(0, img);
     fCanvas.renderAll();
-  } catch (error) { console.error("Error:", error); }
+  } catch (error) {
+    console.error('โหลดรูปไม่สำเร็จ:', error);
+  }
 }
 
-watch(selectedType, async () => {
-  await loadAndComposeTurntable();
-  selectedPatternIndex.value = -1;
-  currentPatternOverlayObj = null;
-})
+watch(selectedIndex, async () => { await updatePreviewImage(); });
+watch(currentStep, async (step) => {
+  if (step === 5) {
+    canvasObjectVersion.value++;
+    nextTick(() => renderThumbnail());
+  }
+});
 
+function selectCollection(index) {
+  selectedIndex.value = index;
+}
+
+// ================= STEP 2 (เขียนชื่อ / สติกเกอร์) =================
 function addTextToCanvas() {
-  if (!customText.value || !fCanvas) return
+  if (!customText.value || !fCanvas) return;
+  const existingText = fCanvas.getObjects().find(o => o.id === 'custom-name-text');
+  if (existingText) fCanvas.remove(existingText);
   const text = new fabric.IText(customText.value, {
-    left: 300, top: 100, originX: 'center', originY: 'center',
-    fontFamily: 'Prompt', fontSize: 30, fill: '#ff5555', selectable: true, id: 'custom-text'
-  })
-  fCanvas.add(text)
-  fCanvas.setActiveObject(text)
-  customText.value = ''
+    left: fCanvas.width / 2, top: fCanvas.height - 50, originX: "center", originY: "center",
+    fontFamily: "Prompt", fontSize: 32, fill: "#ff3b3b", id: "custom-name-text", selectable: true
+  });
+  fCanvas.add(text); fCanvas.setActiveObject(text); fCanvas.renderAll();
+  canvasObjectVersion.value++;
 }
 
-function addSticker(emoji) {
-  if (!fCanvas) return
-  const sticker = new fabric.IText(emoji, {
-    left: 300, top: 100, originX: 'center', originY: 'center', fontSize: 50, selectable: true, id: 'custom-sticker'
-  })
-  fCanvas.add(sticker)
-  fCanvas.setActiveObject(sticker)
+function removeTextFromCanvas() {
+  if (!fCanvas) return;
+  const existingText = fCanvas.getObjects().find(o => o.id === 'custom-name-text');
+  if (existingText) fCanvas.remove(existingText);
+  customText.value = ""; fCanvas.renderAll();
+  canvasObjectVersion.value++;
+}
+
+async function addStickerToCanvas(stickerData) {
+  if (!fCanvas) return;
+  try {
+    const img = await fabric.FabricImage.fromURL(stickerData.image, { crossOrigin: "anonymous" });
+    const scaleFactor = 80 / img.width;
+    img.set({ left: fCanvas.width / 2, top: fCanvas.height / 2, originX: "center", originY: "center", scaleX: scaleFactor, scaleY: scaleFactor, id: "custom-sticker", stickerPrice: typeof stickerData.price === 'number' ? stickerData.price : 50 });
+    fCanvas.add(img); fCanvas.setActiveObject(img); fCanvas.renderAll();
+    stickerCount.value++; canvasObjectVersion.value++;
+  } catch (error) { console.error("โหลดรูปสติกเกอร์ไม่สำเร็จ:", error); }
 }
 
 function deleteSelectedObject() {
   if (!fCanvas) return;
   const activeObj = fCanvas.getActiveObject();
-  if (activeObj && !['turntable-body-side', 'turntable-body-top', 'turntable-tonearm', 'turntable-platter', 'turntable-buttons', 'pattern-overlay', 'vinyl-custom-image'].includes(activeObj.id)) {
-     fCanvas.remove(activeObj);
+  if (activeObj && (activeObj.id === 'custom-sticker' || activeObj.id === 'custom-name-text')) {
+    if (activeObj.id === 'custom-sticker') stickerCount.value = Math.max(0, stickerCount.value - 1);
+    fCanvas.remove(activeObj); fCanvas.discardActiveObject(); fCanvas.renderAll();
+    canvasObjectVersion.value++;
   }
 }
 
-const hasVinylImage = ref(false)
-let currentVinylImageObj = null
+// อัปเดต Next/Prev ขั้นตอนให้สุดที่ Step 5
+function nextStep() { if (currentStep.value < 5) currentStep.value++; }
+function prevStep() { if (currentStep.value > 1) currentStep.value--; }
 
-function handleVinylImageUpload(event) {
-  const file = event.target.files[0];
-  if (!file || !fCanvas) return;
-  const reader = new FileReader();
-  reader.onload = function(f) {
-    const data = f.target.result;
-    fabric.FabricImage.fromURL(data).then((img) => {
-      const platter = fCanvas.getObjects().find(o => o.id === 'turntable-platter');
-      if (!platter) return;
-      if (currentVinylImageObj) fCanvas.remove(currentVinylImageObj);
-      const scale = (platter.radius * 2) / Math.min(img.width, img.height);
-      const clipPath = new fabric.Circle({ radius: platter.radius, originX: 'center', originY: 'center' });
-      img.set({ left: platter.left, top: platter.top, originX: 'center', originY: 'center', scaleX: scale, scaleY: scale, clipPath: clipPath, selectable: false, id: 'vinyl-custom-image' });
-      fCanvas.insertAt(img, fCanvas.getObjects().indexOf(platter) + 1);
-      currentVinylImageObj = img;
-      hasVinylImage.value = true;
-      fCanvas.renderAll();
+// ================= STEP 3 (วางแผ่น) FUNCTIONS =================
+function placeVinylDisc() {
+  if (!fCanvas) return;
+  vinylDiscPlaced.value = true;
+  const discSVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="100" r="98" fill="#111" stroke="#444" stroke-width="2"/><circle cx="100" cy="100" r="80" fill="none" stroke="#252525" stroke-width="1.5"/><circle cx="100" cy="100" r="65" fill="none" stroke="#1e1e1e" stroke-width="1.5"/><circle cx="100" cy="100" r="50" fill="none" stroke="#1e1e1e" stroke-width="1.5"/><circle cx="100" cy="100" r="35" fill="#1a1a1a" stroke="#333" stroke-width="1"/><circle cx="100" cy="100" r="6" fill="#CDF100"/></svg>`;
+  const blob = new Blob([discSVG], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then(img => {
+    const scale = 150 / img.width;
+    img.set({ id: 'vinyl-disc', scaleX: scale, scaleY: scale, left: fCanvas.width / 2, top: fCanvas.height / 2, originX: 'center', originY: 'center', selectable: true, evented: true });
+    fCanvas.add(img); fCanvas.setActiveObject(img); fCanvas.renderAll();
+    URL.revokeObjectURL(url);
+  });
+}
+function removeVinylDisc() {
+  if (!fCanvas) return;
+  ['vinyl-disc', 'disc-label'].forEach(id => { const obj = fCanvas.getObjects().find(o => o.id === id); if (obj) fCanvas.remove(obj); });
+  vinylDiscPlaced.value = false; discImageURL.value = null; fCanvas.renderAll();
+}
+function handleDiscImageUpload(event) {
+  const file = event.target.files[0]; if (!file) return;
+  discImageFile.value = file;
+  const reader = new FileReader(); reader.onload = (e) => { discImageURL.value = e.target.result; }; reader.readAsDataURL(file);
+}
+async function applyImageToDisc() {
+  if (!fCanvas || !discImageURL.value) return;
+  const disc = fCanvas.getObjects().find(o => o.id === 'vinyl-disc');
+  const cx = disc ? disc.left : fCanvas.width / 2, cy = disc ? disc.top : fCanvas.height / 2;
+  const oldLabel = fCanvas.getObjects().find(o => o.id === 'disc-label'); if (oldLabel) fCanvas.remove(oldLabel);
+  const offscreen = document.createElement('canvas'); offscreen.width = 110; offscreen.height = 110;
+  const ctx = offscreen.getContext('2d');
+  return new Promise((resolve) => {
+    const imgEl = new Image();
+    imgEl.onload = async () => {
+      ctx.beginPath(); ctx.arc(55, 55, 55, 0, Math.PI * 2); ctx.clip();
+      ctx.drawImage(imgEl, 0, 0, 110, 110);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath(); ctx.arc(55, 55, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+      const labelImg = await fabric.FabricImage.fromURL(offscreen.toDataURL(), { crossOrigin: 'anonymous' });
+      labelImg.set({ id: 'disc-label', left: cx, top: cy, originX: 'center', originY: 'center', selectable: false, evented: false });
+      fCanvas.add(labelImg); fCanvas.renderAll(); resolve();
+    }; imgEl.src = discImageURL.value;
+  });
+}
+function handleAudioUpload(event) {
+  const file = event.target.files[0]; if (!file) return;
+  audioFile.value = file;
+  if (audioURL.value) URL.revokeObjectURL(audioURL.value);
+  audioURL.value = URL.createObjectURL(file);
+}
+
+// ================= STEP 4 (เล่นเพลง) FUNCTIONS =================
+function togglePlay() {
+  if (!audioPlayerEl.value) return;
+  if (isPlaying.value) { audioPlayerEl.value.pause(); isPlaying.value = false; }
+  else { audioPlayerEl.value.play(); isPlaying.value = true; }
+}
+function stopAudio() {
+  if (!audioPlayerEl.value) return;
+  audioPlayerEl.value.pause(); audioPlayerEl.value.currentTime = 0; isPlaying.value = false; audioProgress.value = 0;
+}
+function updateProgress() {
+  if (!audioPlayerEl.value) return;
+  currentTime.value = audioPlayerEl.value.currentTime; audioDuration.value = audioPlayerEl.value.duration || 0;
+  audioProgress.value = audioDuration.value ? (currentTime.value / audioDuration.value) * 100 : 0;
+}
+function seekAudio(event) {
+  if (!audioPlayerEl.value || !audioDuration.value) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  audioPlayerEl.value.currentTime = ((event.clientX - rect.left) / rect.width) * audioDuration.value;
+}
+function formatTime(secs) {
+  if (!secs || isNaN(secs)) return '0:00';
+  const m = Math.floor(secs / 60), s = Math.floor(secs % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+// ================= STEP 5 (สรุป) FUNCTIONS =================
+async function renderThumbnail() {
+  if (!fCanvas || !thumbCanvasEl.value) return;
+  fCanvas.discardActiveObject(); fCanvas.renderAll();
+  const img = new Image();
+  img.onload = () => {
+    const ctx = thumbCanvasEl.value.getContext('2d'); ctx.clearRect(0, 0, 300, 200); ctx.drawImage(img, 0, 0, 300, 200);
+  }; img.src = fCanvas.toDataURL({ format: 'png', multiplier: 0.5 });
+}
+function downloadCanvas() {
+  if (!isLoggedIn.value) {
+    if (confirm("กรุณาเข้าสู่ระบบก่อนดาวน์โหลดผลงานครับ ไปหน้า Login ไหม?")) router.push('/login');
+    return;
+  }
+  if (!fCanvas) return;
+  fCanvas.discardActiveObject(); fCanvas.renderAll();
+  const a = document.createElement('a'); a.href = fCanvas.toDataURL({ format: 'png', multiplier: 2 }); a.download = 'Limited-SpinCustom-Vinyl.png'; a.click();
+}
+
+async function saveSpecialOrder() {
+  if (!isLoggedIn.value) {
+    if (confirm("กรุณาเข้าสู่ระบบก่อนบันทึกออเดอร์ครับ ไปหน้า Login ไหม?")) router.push('/login');
+    return;
+  }
+  if (isSavingOrder.value) return;
+  isSavingOrder.value = true;
+  
+  try {
+    // ----------------------------------------------------
+    // 🔥 [แก้ไขใหม่] ดึงรูปจาก fCanvas โดยตรง ป้องกันพื้นหลังดำ
+    // ----------------------------------------------------
+    fCanvas.discardActiveObject(); // ยกเลิกการเลือก Object ก่อนถ่ายรูป
+    fCanvas.renderAll();
+    
+    const thumbDataURL = fCanvas.toDataURL({
+      format: 'jpeg', 
+      quality: 0.7,     // ลดความละเอียดลงเพื่อไม่ให้หนัก Database
+      multiplier: 0.5   // ย่อขนาดรูปลงครึ่งนึง (เหมือนทำ Thumbnail)
     });
-  };
-  reader.readAsDataURL(file);
+    // ----------------------------------------------------
+
+    const orderData = {
+      userId: auth.currentUser.uid,
+      userEmail: auth.currentUser.email,
+      productName: activeCollection.value.campaign_name + " (Special Edition)",
+      customText: customText.value,
+      totalPrice: totalPrice.value,
+      thumbnail: thumbDataURL, // <--- ใช้ตัวแปรใหม่ที่เราเพิ่งสร้าง
+      status: 'pending',
+      createdAt: serverTimestamp()
+    };
+    await addDoc(collection(db, 'orders'), orderData);
+    // เด้ง Popup แจ้งเตือนสั่งซื้อรุ่น Special สำเร็จ
+    window.Swal.fire({
+      title: "สั่งซื้อรุ่นพิเศษสำเร็จ!",
+      text: "ข้อมูลถูกบันทึกเรียบร้อยแล้วครับ ขอบคุณที่อุดหนุนรุ่น Limited Edition ของเรา",
+      icon: "success",
+      draggable: true,
+      background: '#232321', // สีพื้นหลังกล่อง
+      color: '#ffffff', // สีตัวหนังสือ
+      confirmButtonColor: '#ff3b3b', // สีปุ่มตกลง (แดง Limited)
+      confirmButtonText: 'ตกลง',
+    });
+  } catch (e) { 
+    alert("เกิดข้อผิดพลาด: " + e.message); 
+  } finally { 
+    isSavingOrder.value = false; 
+  }
 }
 
-function removeVinylImage() {
-   if (currentVinylImageObj && fCanvas) {
-      fCanvas.remove(currentVinylImageObj);
-      currentVinylImageObj = null;
-      hasVinylImage.value = false;
-      fCanvas.renderAll();
-   }
+function shareDesign() {
+  navigator.clipboard.writeText(window.location.href).then(() => { copySuccess.value = true; setTimeout(() => { copySuccess.value = false; }, 3000); });
 }
 
-// ================= NAVIGATION =================
-function nextStep() { if (currentStep.value < 6) currentStep.value++ }
-function prevStep() { if (currentStep.value > 1) currentStep.value-- }
-function selectType(id) { selectedType.value = id }
+function resetAll() {
+  if (audioPlayerEl.value) { audioPlayerEl.value.pause(); audioPlayerEl.value.currentTime = 0; }
+  customText.value = ""; vinylDiscPlaced.value = false; discImageURL.value = null; discImageFile.value = null;
+  isPlaying.value = false; audioProgress.value = 0; currentTime.value = 0; audioDuration.value = 0; copySuccess.value = false;
+  stickerCount.value = 0; canvasObjectVersion.value = 0;
+  if (audioURL.value) { URL.revokeObjectURL(audioURL.value); audioURL.value = null; } audioFile.value = null;
+  if (fCanvas) { fCanvas.clear(); fCanvas.backgroundColor = '#ffffff'; fCanvas.renderAll(); }
+  currentStep.value = 1; updatePreviewImage();
+}
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Jura:wght@400;700&family=Prompt:wght@300;400;500;600&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Jura:wght@400;700&family=Prompt:wght@300;400;500;600&display=swap");
 
-/* ================= VARIABLES & GLOBAL ================= */
-.customizer-layout { background-color: #1a1a17; min-height: 100vh; color: #fff; font-family: 'Prompt', sans-serif; padding-bottom: 50px; }
+.customizer-layout { background-color: #1a1a17; min-height: 100vh; color: #fff; font-family: "Prompt", sans-serif; padding-bottom: 50px; }
 .container-main { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
-.highlight-yellow { color: #CDF100; }
-.text-danger { color: #ff5555 !important; }
+.highlight-yellow { color: #cdf100; }
+.text-red { color: #ff3b3b; font-family: 'Jura'; letter-spacing: 1px;}
+.text-lime { color: #CDF100; }
+
+.customizing-text { color: #ff3b3b; font-family: "Jura", sans-serif; letter-spacing: 3px; margin-bottom: 5px; font-weight: bold;}
+.title-text { font-size: 36px; font-weight: 600; margin-bottom: 20px; }
+.progress-bar-container { width: 100%; height: 8px; background-color: #333; border-radius: 4px; overflow: hidden; margin-bottom: 40px; }
+.progress-bar-fill { height: 100%; background-color: #ff3b3b; transition: width 0.3s ease; } 
 
 .header-section { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; }
-.customizing-text { font-family: 'Jura', sans-serif; letter-spacing: 2px; margin-bottom: 5px; text-align: center; font-weight: bold;}
-.title-text { font-size: 36px; font-weight: 600; margin-bottom: 20px; text-align: center;}
-.progress-bar-container { width: 100%; height: 8px; background-color: #333; border-radius: 4px; overflow: hidden; margin-bottom: 40px; }
-.progress-bar-fill { height: 100%; transition: width 0.3s ease; }
+.customizing-text, .title-text { text-align: center; }
 
+/* Preview Area */
 .preview-section { margin-bottom: 30px; }
-.preview-card { background-color: #2a2a2a; border-radius: 20px; padding: 40px; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
-.bg-curve { position: absolute; top: 20%; left: 5%; right: 5%; bottom: -50%; border: 1px solid rgba(255, 85, 85, 0.4); border-radius: 50% 50% 0 0; pointer-events: none; z-index: 1; }
-.canvas-wrapper { background: transparent; width: 100%; max-width: 600px; aspect-ratio: 3/2; z-index: 2; }
-.product-info-block { z-index: 2; position: relative; width: 100%; }
-.product-name { font-size: 24px; font-weight: 700; margin: 15px 0 5px 0; text-align: center; }
+.preview-card { background-color: #2a2a2a; border-radius: 20px; padding: 40px; display: flex; flex-direction: column; align-items: center; border: 1px solid #444; overflow: hidden; position: relative;}
+.bg-curve { position: absolute; top: 20%; left: 5%; right: 5%; bottom: -50%; border-radius: 50% 50% 0 0; pointer-events: none; border: 1px solid rgba(255,255,255,0.05);}
+.canvas-wrapper { width: 100%; max-width: 600px; aspect-ratio: 3/2; background: #fff; border-radius: 12px; overflow: hidden; position: relative; z-index: 1;}
+.product-info-block { z-index: 1; position: relative; width: 100%; }
+.product-name { color: #ff3b3b; font-size: 24px; font-weight: 500; margin: 15px 0 5px 0; text-align: center; }
 .product-desc { color: #ddd; font-size: 14px; margin: 0; text-align: center; }
-
 .nav-arrows { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
-.arrow-btn { background: #fff; border: none; padding: 10px 20px; cursor: pointer; font-size: 16px; font-weight: bold; color: #000;}
+.arrow-btn { background: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 0; font-size: 16px; font-weight: bold; color: #000; }
+.arrow-btn.btn-next { background: #ff3b3b; color: #fff; }
 .arrow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.arrow-left, .arrow-right { width: 60px; height: 40px; display: flex; align-items: center; justify-content: center; }
-.arrow-left img, .arrow-right img { width: 100%; height: 100%; object-fit: contain; } 
 
+/* Tool sections */
 .step-container { animation: fadeIn 0.3s ease; }
-.step-title { font-size: 24px; font-weight: 500; margin-bottom: 20px; }
-
-.grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.type-card { background-color: #333; border-radius: 12px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; border: 2px solid transparent; text-align: center;}
-.type-card.active { border-color: #ff5555; box-shadow: 0 0 15px rgba(255, 85, 85, 0.3); }
-.thumb-placeholder { width: 100%; height: 70%; display: flex; align-items: center; justify-content: center; overflow: hidden;}
-.type-image { max-width: 80%; max-height: 80%; object-fit: contain; }
-.type-label { font-size: 12px; margin: 0; padding: 5px 10px 10px 10px; line-height: 1.2; font-weight: bold;}
-
+.step-title { color: #ff3b3b; font-size: 24px; font-weight: 500; margin-bottom: 20px; }
 .tools-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.tool-panel { background-color: #2a2a2a; border-radius: 12px; padding: 25px; height: 100%; border: 1px solid #444; }
-.panel-title { font-size: 18px; font-weight: 500; text-align: center; }
 
-.color-swatches button.swatch { width: 35px; height: 35px; border-radius: 6px; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
-.color-swatches button.swatch:hover { transform: scale(1.1); }
-.color-swatches button.swatch.active { border-color: #ff5555; box-shadow: 0 0 10px rgba(255, 85, 85, 0.4); }
+/* Step 1 */
+.grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.type-card { background-color: #111; border-radius: 12px; height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; border: 2px solid #333;}
+.type-card.active { border-color: #ff3b3b; box-shadow: 0 0 15px rgba(255, 59, 59, 0.3);}
+.thumb-placeholder { width: 100%; height: 70%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.type-image { max-width: 80%; max-height: 80%; object-fit: contain; }
+.type-label { font-size: 14px; color: #fff; margin-top: 10px; font-weight: 500;}
 
-.pattern-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
-.pattern-item { display: flex; flex-direction: column; gap: 5px; cursor: pointer;}
-.pattern-label { font-size: 12px; margin: 0; text-align: center;}
-.pattern-image-wrapper { width: 100%; height: 60px; border-radius: 8px; border: 2px solid transparent; transition: 0.2s; overflow: hidden; display: flex; align-items: center; justify-content: center;}
-.pattern-image { width: 100%; height: 100%; object-fit: cover; }
-.pattern-item:hover .pattern-image-wrapper { border-color: #ff5555; }
-.border-active-special { border-color: #ff5555 !important; box-shadow: 0 0 10px rgba(255, 85, 85, 0.4); }
+/* Panels and Inputs */
+.tool-panel { background-color: #2a2a2a; border-radius: 12px; padding: 25px; border: 1px solid #444;}
+.panel-title { color: #fff; font-size: 18px; font-weight: 500; margin-top: 0; }
+.panel-title-left { color: #fff; font-size: 18px; font-weight: 500; margin-top: 0; }
+.text-left { text-align: left !important; }
+.custom-input { width: 100%; padding: 12px 15px; border-radius: 6px; border: none; background-color: #fff; color: #000; outline: none; font-family: 'Prompt', sans-serif; font-size: 16px; box-sizing: border-box; }
 
-.custom-input { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid #444; background-color: #111; color: #fff; outline: none; font-family: 'Prompt'; }
-.custom-input:focus { border-color: #ff5555; }
-.sticker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-.sticker-btn { background-color: #333; border: 1px solid #444; border-radius: 8px; font-size: 24px; padding: 10px; cursor: pointer; transition: 0.2s; }
-.sticker-btn:hover { background-color: #444; transform: scale(1.1); border-color: #ff5555; }
+.btn-dark-grey { background-color: #111; color: #fff; border: 1px solid #444; padding: 10px 0; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; transition: 0.2s; }
+.btn-dark-grey:hover { background-color: #000; }
+.btn-yellow { background-color: #ff3b3b; color: #fff; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; font-weight: 500; transition: 0.2s; }
+.btn-yellow:hover { transform: scale(1.03); }
+.btn-danger-outline { background-color: transparent; color: #ff5555; border: 1px solid #ff5555; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: 'Prompt', sans-serif; }
 
-.btn-danger { background-color: transparent; color: #ff5555; border: 1px solid #ff5555; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-family: 'Prompt'; cursor: pointer; transition: 0.2s; }
-.btn-danger:hover { background-color: #ff5555; color: #fff; }
-.cursor-pointer { cursor: pointer; }
-.d-inline-block { display: inline-block; }
+/* Stickers */
+.sticker-grid-3x2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.sticker-box { background-color: #e0e0e0; border-radius: 6px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; border: 2px solid transparent; transition: 0.2s; }
+.sticker-box:hover { border-color: #ff3b3b; transform: scale(1.05); }
+.sticker-img { width: 80%; height: 80%; object-fit: contain; }
+
+/* Uploaders */
+.place-disc-area { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 16px 0; }
+.disc-preview-static { opacity: 0.75; filter: drop-shadow(0 0 20px rgba(255,59,59,0.25)); }
+.placed-controls { display: flex; flex-direction: column; gap: 8px; }
+.status-badge { background: rgba(255,59,59,0.1); border: 1px solid rgba(255,59,59,0.35); color: #ff3b3b; padding: 8px 12px; border-radius: 8px; font-size: 13px; }
+.sub-label { color: #fff; font-size: 15px; margin: 0 0 6px 0; }
+.upload-box { display: block; border: 2px dashed #555; border-radius: 12px; min-height: 100px; cursor: pointer; transition: all 0.2s; overflow: hidden; }
+.upload-box:hover, .upload-box.has-file { border-color: #ff3b3b; background: rgba(255,59,59,0.04); }
+.upload-inner { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 18px 12px; color: #aaa; font-size: 13px; text-align: center; }
+.upload-hint { font-size: 11px; color: #666; }
+.upload-preview-wrap { position: relative; }
+.upload-preview-img { width: 100%; height: 100px; object-fit: cover; display: block; }
+.replace-text { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: #fff; text-align: center; font-size: 12px; padding: 4px; }
+.audio-ctrl { width: 100%; filter: invert(1) hue-rotate(180deg); }
+.hint-text { color: #888; font-size: 13px; }
+
+/* Player */
+.player-center { display: flex; flex-direction: column; align-items: center; gap: 24px; }
+.turntable-stage { display: flex; flex-direction: column; align-items: center; }
+.spinning-disc { position: relative; transition: filter 0.4s; }
+.spinning-disc.playing { animation: spinVinyl 2.8s linear infinite; filter: drop-shadow(0 0 36px rgba(255,59,59,0.35)); }
+@keyframes spinVinyl { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.disc-shimmer { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(transparent 0deg, rgba(255,255,255,0.04) 60deg, transparent 120deg); pointer-events: none; }
+.eq-bars { display: flex; gap: 4px; margin-top: 18px; height: 28px; align-items: flex-end; }
+.eq-bar { width: 5px; background: #333; border-radius: 2px; height: 5px; }
+.eq-bars.active .eq-bar { animation: eqBounce 0.55s ease-in-out infinite alternate; background: #ff3b3b; }
+@keyframes eqBounce { from { height: 4px; } to { height: 24px; } }
+.player-controls { width: 100%; max-width: 340px; }
+.progress-track { width: 100%; height: 6px; background: #333; border-radius: 3px; cursor: pointer; overflow: hidden; }
+.progress-fill { height: 100%; background: #ff3b3b; border-radius: 3px; transition: width 0.1s linear; }
+.time-labels { display: flex; justify-content: space-between; color: #888; font-size: 12px; margin-top: 5px; }
+.control-btns { display: flex; justify-content: center; gap: 16px; margin-top: 18px; }
+.ctrl-btn { background: #111; border: 2px solid #444; color: #fff; width: 56px; height: 56px; border-radius: 50%; font-size: 20px; cursor: pointer; transition: all 0.2s; }
+.ctrl-btn:hover:not(:disabled) { background: #ff3b3b; border-color: #ff3b3b; color: #fff; transform: scale(1.1); }
+.ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Summary */
+.price-list { display: flex; flex-direction: column; gap: 10px; }
+.price-row { display: flex; justify-content: space-between; align-items: center; color: #ccc; font-size: 14px; }
+.price-val { color: #fff; font-weight: 500; }
+.price-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 4px 0; }
+.total-row { font-size: 16px; font-weight: 600; color: #fff; }
+.price-total { font-size: 22px; font-weight: 700; }
+.download-preview { background: #1a1a1a; border-radius: 8px; overflow: hidden; }
+.thumb-canvas { width: 100%; height: auto; border-radius: 8px; border: 1px solid #444; display: block; }
+.share-success { font-size: 13px; margin-top: 8px; }
+.order-card { background: linear-gradient(135deg, #2a2a2a, #111); border: 1px solid #444; border-radius: 16px; padding: 20px; margin-top: 20px; }
+.order-card-inner { display: flex; align-items: center; gap: 16px; }
+.order-icon { font-size: 32px; }
+.order-detail { flex: 1; }
+.order-title { font-size: 15px; margin: 0 0 4px 0; font-weight: 500; }
+.order-sub { color: #888; font-size: 12px; margin: 0; }
+.order-price { font-size: 24px; font-weight: 700; }
+
+.restart-section { display: flex; flex-direction: column; align-items: center; margin-top: 36px; gap: 12px; }
+.restart-divider { width: 100%; display: flex; align-items: center; gap: 16px; }
+.restart-divider::before, .restart-divider::after { content: ''; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.1); }
+.restart-divider-text { color: #666; font-size: 13px; white-space: nowrap; }
+.btn-restart { display: inline-flex; align-items: center; gap: 10px; background: transparent; border: 2px solid; padding: 14px 48px; border-radius: 8px; font-size: 16px; font-family: 'Prompt', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.25s ease; letter-spacing: 0.3px; }
+.btn-restart:hover { background: #ff3b3b; color: #fff !important; transform: scale(1.03); box-shadow: 0 0 24px rgba(255, 59, 59, 0.25); }
+.restart-hint { color: #555; font-size: 12px; margin: 0; text-align: center; }
+
+/* Utils */
+.d-flex { display: flex; }
+.flex-fill { flex: 1; }
+.flex-column { flex-direction: column; }
+.align-items-center { align-items: center; }
+.gap-2 { gap: 8px; }
+.text-center { text-align: center; }
+.mt-4 { margin-top: 16px; }
+.mt-5 { margin-top: 24px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.position-relative { position: relative; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }

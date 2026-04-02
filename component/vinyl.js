@@ -26,3 +26,32 @@ export const vinylType1 = ({ width = 100, height = 100, color1 = "#0059FF", colo
     />
   </svg>
 );
+
+export const vinylType2 = ({ width = 100, height = 100, color1 = "#0059FF", color2 = "#FF0000" , color3 = "#FFF700" }) => (
+  <svg
+    width={width}
+    height={height}
+    color1={color1}
+    color2={color2}
+    color3={color3}
+    viewBox="0 0 617 430"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <rect x="0.5" y="0.5" width="616" height="393" fill="#00D5FF" stroke="#4B4A2D"/>
+    <rect x="0.5" y="0.5" width="616" height="361" fill="white" stroke="#4B4A2D"/>
+    <rect x="387.5" y="0.5" width="228" height="361" fill="#FFF700" stroke="#4B4A2D"/>
+    <circle cx="553" cy="312" r="17" fill="#FF0000"/>
+    <circle cx="553" cy="312" r="23.5" stroke="#4B4A2D"/>
+    <circle cx="553" cy="256" r="17" fill="#FF0000"/>
+    <circle cx="553" cy="256" r="23.5" stroke="#4B4A2D"/>
+    <circle cx="507" cy="312" r="12.75" fill="#FF0000"/>
+    <circle cx="507" cy="312" r="17.625" stroke="#4B4A2D" stroke-width="0.75"/>
+    <circle cx="219" cy="181" r="154.5" fill="white" stroke="#4B4A2D"/>
+    <circle cx="219" cy="180.999" r="56.5693" fill="black"/>
+    <circle cx="219" cy="181" r="4.52555" fill="#4B4A2D"/>
+    <circle cx="442" cy="50" r="23.5" fill="white" stroke="#4B4A2D"/>
+    <path d="M442 33C451.389 33 459 40.6112 459 50C459 58.3651 452.958 65.3184 445 66.7354V239H450V269H433V239H439V66.7354C431.042 65.3184 425 58.3651 425 50C425 40.6112 432.611 33 442 33Z" fill="#E100AD"/>
+    </svg>
+  </svg>
+);  

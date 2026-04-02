@@ -9,10 +9,26 @@
             </div>
 
             <nav class="nav-menu">
-            <NuxtLink to="/" class="nav-item">HOME</NuxtLink>
-            <NuxtLink to="/custom" class="nav-item">CUSTOM</NuxtLink>
-            <NuxtLink to="/about" class="nav-item">ABOUT</NuxtLink>
-            <NuxtLink to="/login" class="login-btn">LOGIN</NuxtLink>
+              <NuxtLink to="/" class="nav-item">HOME</NuxtLink>
+              <NuxtLink to="/custom" class="nav-item">CUSTOM</NuxtLink>
+              <NuxtLink to="/about" class="nav-item">ABOUT</NuxtLink>
+              
+              <NuxtLink v-if="!isLoggedIn" to="/login" class="login-btn">LOGIN</NuxtLink>
+              
+              <div v-else class="user-profile-container">
+                <div class="user-display" @click="showUserMenu = !showUserMenu">
+                  <!-- <span class="name-text">{{ userName.toUpperCase() }}</span> -->
+                   <span class="name-text">{{ userName ? userName.toUpperCase() : 'USER' }}</span>
+                  <span class="arrow-icon" :class="{ 'rotate': showUserMenu }">▼</span>
+                </div>
+                
+                <transition name="slide-fade">
+                  <div v-if="showUserMenu" class="dropdown-menu">
+                    <button @click="handleLogout" class="dropdown-item logout-red">LOGOUT</button>
+                    <NuxtLink to="/profile" class="dropdown-item">PROFILE</NuxtLink>
+                  </div>
+                </transition>
+              </div>
             </nav>
         </div>
     </header>
@@ -33,13 +49,21 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
+import { doc, getDoc } from 'firebase/firestore'
+import { auth } from '@/utils/firebase'
 
-// ตัวแปรเก็บสถานะว่าเลื่อนจอลงมาหรือยัง
+const router = useRouter()
+const userName = ref('') 
+const showUserMenu = ref(false)
+
+// ตัวแปรเก็บสถานะ
 const isScrolled = ref(false)
+const isLoggedIn = ref(false) // ตัวแปรเช็คว่าล็อกอินหรือยัง
 
 // ฟังก์ชันเช็คระยะการเลื่อนจอ
 const handleScroll = () => {
-  // ถ้าเลื่อนจอลงมามากกว่า 50px ให้ isScrolled เป็น true
   if (window.scrollY > 50) {
     isScrolled.value = true
   } else {
@@ -47,9 +71,44 @@ const handleScroll = () => {
   }
 }
 
-// เมื่อ Component ถูกโหลด ให้เริ่มดักจับการเลื่อนหน้าจอ
+// ฟังก์ชันออกจากระบบ
+const handleLogout = async () => {
+  try {
+    await signOut(auth)
+    alert('ออกจากระบบเรียบร้อยแล้วครับ!')
+    router.push('/') // เด้งกลับหน้าแรก
+  } catch (error) {
+    console.error('เกิดข้อผิดพลาดในการออกจากระบบ:', error)
+  }
+}
+
+// เมื่อ Component ถูกโหลด 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      isLoggedIn.value = true
+      
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        if (userDoc.exists() && userDoc.data().name) {
+          // ถ้ามีข้อมูลผู้ใช้และมีฟิลด์ name
+          userName.value = userDoc.data().name 
+        } else {
+          // ถ้าไม่มีฟิลด์ name ให้เอาชื่ออีเมลส่วนหน้ามาใช้แทน
+          userName.value = user.email.split('@')[0] 
+        }
+      } catch (error) {
+        console.error("ดึงข้อมูลชื่อไม่สำเร็จ:", error)
+        userName.value = "USER"
+      }
+
+    } else {
+      isLoggedIn.value = false
+      userName.value = ''
+    }
+  })
 })
 
 // คืนค่าหน่วยความจำเมื่อออกจากหน้า
@@ -189,7 +248,99 @@ onUnmounted(() => {
 
 .login-btn:hover { transform: scale(1.05); }
 .login-btn.router-link-exact-active { border: none; }
+/* ปุ่ม LOGOUT ใช้รูปทรงเดียวกับ LOGIN แต่งให้กดได้เหมือนกัน */
 
+.logout-btn {
+  font-family: 'Prompt', sans-serif;
+  cursor: pointer;
+  border: none;
+}
+/* ==================== 
+   USER PROFILE STYLE 
+==================== */
+.user-profile-container {
+  position: relative;
+  margin-left: 10px;
+}
+
+.user-display {
+  background-image: url('/overal2.svg'); /* ใช้รูปวงรีเดิมของคุณมาร์ค */
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #000;
+  padding: 10px 25px;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: transform 0.2s;
+  font-weight: 600;
+}
+
+.user-display:hover {
+  transform: scale(1.05);
+}
+
+.name-text {
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.arrow-icon {
+  font-size: 10px;
+  transition: transform 0.3s ease;
+}
+
+.arrow-icon.rotate {
+  transform: rotate(180deg);
+}
+
+/* กล่องเมนู Dropdown */
+.dropdown-menu {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background-color: #232321;
+  border: 1px solid #333;
+  border-radius: 8px;
+  min-width: 150px;
+  padding: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  z-index: 1100;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-family: 'Prompt', sans-serif;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.logout-red {
+  color: #ff5555;
+  font-weight: 600;
+}
+
+/* แอนิเมชันตอนเมนูโผล่ */
+.slide-fade-enter-active { transition: all 0.3s ease-out; }
+.slide-fade-leave-active { transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1); }
+.slide-fade-enter-from, .slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
 /* ==================== 
    MAIN CONTENT & FOOTER
 ==================== */

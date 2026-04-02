@@ -87,13 +87,15 @@
    สไตล์กล่องข้อความ
 ==================== */
 .content-box {
-    width: 1107px;
-    height: 366px;
+    width: 100%;
+    max-width: 1107px;
+    min-height: 366px; 
+    height: auto;
     border-radius: 21px;
     background: #1A1A0C;
-    box-sizing: border-box; /* สำคัญ: เพื่อไม่ให้ padding ไปเพิ่มขนาด height จริง */
-    padding-top: 63px; /* ระยะข้อความด้านบน 63px ตามรูป */
-    padding-bottom: 87px; /* ระยะข้อความด้านล่าง 87px ตามรูป */
+    box-sizing: border-box; 
+    padding-top: 63px; 
+    padding-bottom: 87px;
     display: flex;
     justify-content: center;
 }
