@@ -486,11 +486,21 @@ const bodyTextures = [
   { id: 'b1', src: '/textures_body-vinyl_1-1.png' },
   { id: 'b2', src: '/textures_body-vinyl_1-2.png' },
   { id: 'b3', src: '/textures_body-vinyl_1-3.png' },
+  { id: 'b4', src: '/textures_body-vinyl_1-4.png' },
+  { id: 'b5', src: '/textures_body-vinyl_1-5.png' },
+  { id: 'b6', src: '/textures_body-vinyl_1-6.png' },
+  { id: 'b7', src: '/textures_body-vinyl_1-7.png' },
+  { id: 'b8', src: '/textures_body-vinyl_1-8.png' },
 ];
 const sideTextures = [
   { id: 's1', src: '/bases_body-vinyl_1-1.png' },
   { id: 's2', src: '/bases_body-vinyl_1-2.png' },
   { id: 's3', src: '/bases_body-vinyl_1-3.png' },
+  { id: 's4', src: '/bases_body-vinyl_1-4.png' },
+  { id: 's5', src: '/bases_body-vinyl_1-5.png' },
+  { id: 's6', src: '/bases_body-vinyl_1-6.png' },
+  { id: 's7', src: '/bases_body-vinyl_1-7.png' },
+  { id: 's8', src: '/bases_body-vinyl_1-8.png' },
 ];
 
 // mode ของแต่ละ part: 'texture' หรือ 'color'
