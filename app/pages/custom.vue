@@ -65,7 +65,7 @@
                     <!-- ===== BODY: texture + color ===== -->
                     <div class="color-group-block">
                       <div class="color-group-header">
-                        <p class="part-label">ส่วนตัวเครื่อง</p>
+                        <p class="part-label">ส่วนข้างเครื่อง</p>
                         <div class="mode-toggle">
                           <button class="mode-btn" :class="{ active: bodyMode === 'texture' }" @click="setBodyMode('texture')">ลวดลาย</button>
                           <button class="mode-btn" :class="{ active: bodyMode === 'color' }" @click="setBodyMode('color')">สีล้วน</button>
@@ -105,7 +105,7 @@
                     <!-- ===== SIDE: texture + color ===== -->
                     <div class="color-group-block">
                       <div class="color-group-header">
-                        <p class="part-label">ส่วนข้างเครื่อง</p>
+                        <p class="part-label">ส่วนตัวเครื่อง</p>
                         <div class="mode-toggle">
                           <button class="mode-btn" :class="{ active: sideMode === 'texture' }" @click="setSideMode('texture')">ลวดลาย</button>
                           <button class="mode-btn" :class="{ active: sideMode === 'color' }" @click="setSideMode('color')">สีล้วน</button>
@@ -457,24 +457,24 @@ const vinylTypes = ref([
 const presetColors = ['#222222', '#F5F5F5', '#CDF100', '#FF5C5C', '#5C9EFF', '#FFD700', '#A0522D', '#2ECC71'];
 
 const bodyTextures = [
-  { id: 'b1', src: '/textures_body-vinyl_1-1.png' },
-  { id: 'b2', src: '/textures_body-vinyl_1-2.png' },
-  { id: 'b3', src: '/textures_body-vinyl_1-3.png' },
-  { id: 'b4', src: '/textures_body-vinyl_1-4.png' },
-  { id: 'b5', src: '/textures_body-vinyl_1-5.png' },
-  { id: 'b6', src: '/textures_body-vinyl_1-6.png' },
-  { id: 'b7', src: '/textures_body-vinyl_1-7.png' },
-  { id: 'b8', src: '/textures_body-vinyl_1-8.png' },
+  { id: 'b1', src: '/bases_body-vinyl_1-1.png' },
+  { id: 'b2', src: '/bases_body-vinyl_1-2.png' },
+  { id: 'b3', src: '/bases_body-vinyl_1-3.png' },
+  { id: 'b4', src: '/bases_body-vinyl_1-4.png' },
+  { id: 'b5', src: '/bases_body-vinyl_1-5.png' },
+  { id: 'b6', src: '/bases_body-vinyl_1-6.png' },
+  { id: 'b7', src: '/bases_body-vinyl_1-7.png' },
+  { id: 'b8', src: '/bases_body-vinyl_1-8.png' },
 ];
 const sideTextures = [
-  { id: 's1', src: '/bases_body-vinyl_1-1.png' },
-  { id: 's2', src: '/bases_body-vinyl_1-2.png' },
-  { id: 's3', src: '/bases_body-vinyl_1-3.png' },
-  { id: 's4', src: '/bases_body-vinyl_1-4.png' },
-  { id: 's5', src: '/bases_body-vinyl_1-5.png' },
-  { id: 's6', src: '/bases_body-vinyl_1-6.png' },
-  { id: 's7', src: '/bases_body-vinyl_1-7.png' },
-  { id: 's8', src: '/bases_body-vinyl_1-8.png' },
+  { id: 's1', src: '/textures_body-vinyl_1-1.png' },
+  { id: 's2', src: '/textures_body-vinyl_1-2.png' },
+  { id: 's3', src: '/textures_body-vinyl_1-3.png' },
+  { id: 's4', src: '/textures_body-vinyl_1-4.png' },
+  { id: 's5', src: '/textures_body-vinyl_1-5.png' },
+  { id: 's6', src: '/textures_body-vinyl_1-6.png' },
+  { id: 's7', src: '/textures_body-vinyl_1-7.png' },
+  { id: 's8', src: '/textures_body-vinyl_1-8.png' },
 ];
 
 // mode ของแต่ละ part: 'texture' หรือ 'color'
@@ -543,8 +543,22 @@ const copySuccess = ref(false)
 const draftSaved = ref(false)
 
 function saveDraft() {
+  const uid = auth.currentUser?.uid
+  if (!uid) {
+    window.Swal?.fire({
+      title: 'กรุณาเข้าสู่ระบบ',
+      text: 'ต้องเข้าสู่ระบบก่อนจึงจะบันทึกการออกแบบค้างไว้ได้ครับ',
+      icon: 'warning',
+      background: '#232321',
+      color: '#ffffff',
+      confirmButtonColor: '#CDF100',
+      confirmButtonText: '<span style="color:#000;font-weight:600;">ตกลง</span>',
+    })
+    return
+  }
   const draft = {
     savedAt: new Date().toISOString(),
+    page: 'custom',
     currentStep: currentStep.value,
     selectedType: selectedType.value,
     selectedColors: selectedColors.value,
@@ -556,7 +570,8 @@ function saveDraft() {
     discImageURL: discImageURL.value,
     audioURL: audioURL.value,
   }
-  localStorage.setItem('spinCustomDraft', JSON.stringify(draft))
+  // บันทึกแยกตาม userId เพื่อไม่ให้ draft ปนกันระหว่าง user
+  localStorage.setItem(`spinCustomDraft_${uid}`, JSON.stringify(draft))
   draftSaved.value = true
   setTimeout(() => { draftSaved.value = false }, 3000)
 };
@@ -613,7 +628,8 @@ onMounted(async () => {
   // ================= RESTORE DRAFT =================
   if (route.query.restore === '1') {
     try {
-      const raw = localStorage.getItem('spinCustomDraft')
+      const uid = auth.currentUser?.uid
+      const raw = uid ? localStorage.getItem(`spinCustomDraft_${uid}`) : null
       if (raw) {
         const draft = JSON.parse(raw)
         // Restore step + design state
@@ -1255,11 +1271,24 @@ async function renderThumbnail() {
 function downloadCanvas() {
   // 1. เช็คก่อนว่าล็อกอินหรือยัง!
   if (!isLoggedIn.value) {
-    const confirmLogin = confirm("คุณต้องเข้าสู่ระบบหรือสมัครสมาชิกก่อน ถึงจะดาวน์โหลดรูปภาพและบันทึกออเดอร์ได้ครับ ไปหน้า Login เลยไหม?");
-    if (confirmLogin) {
-      router.push('/login'); // เด้งไปหน้าล็อกอิน
-    }
-    return; // หยุดการทำงาน ไม่ให้โหลดรูป
+    window.Swal.fire({
+      title: "กรุณาเข้าสู่ระบบ",
+      text: "คุณต้องเข้าสู่ระบบก่อน ถึงจะดาวน์โหลดรูปภาพและบันทึกออเดอร์ได้ครับ",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#CDF100", // สีเหลือง SpinCustom
+      cancelButtonColor: "#444",
+      confirmButtonText: '<span style="color:#000; font-weight:600;">ไปหน้า Login</span>',
+      cancelButtonText: "ไว้ทีหลัง",
+      background: "#232321", // พื้นหลังเข้มตามธีมเว็บคุณ
+      color: "#fff"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        router.push('/login');
+      }
+    });
+    
+    return; // หยุดการทำงานส่วนที่เหลือ
   }
 
   // 2. ถ้าล็อกอินแล้ว อนุญาตให้ดาวน์โหลดได้

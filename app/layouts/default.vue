@@ -74,11 +74,46 @@ const handleScroll = () => {
 // ฟังก์ชันออกจากระบบ
 const handleLogout = async () => {
   try {
-    await signOut(auth)
-    alert('ออกจากระบบเรียบร้อยแล้วครับ!')
-    router.push('/') // เด้งกลับหน้าแรก
+    // 1. แสดงหน้าต่างยืนยันก่อนออกจากระบบ (Optional แต่แนะนำครับ)
+    const result = await window.Swal.fire({
+      title: 'ออกจากระบบ?',
+      text: "คุณต้องการออกจากระบบใช่หรือไม่?",
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#FFF700', // สีเหลืองตามธีม SpinCustom
+      cancelButtonColor: '#444',
+      confirmButtonText: '<span style="color:#000; font-weight:600;">ใช่, ออกจากระบบ</span>',
+      cancelButtonText: 'ยกเลิก',
+      background: '#232321', // สีพื้นหลังเข้ม
+      color: '#fff'
+    })
+
+    if (result.isConfirmed) {
+      await signOut(auth)
+      
+      // 2. แสดง Swal แจ้งเตือนเมื่อ Logout สำเร็จ
+      await window.Swal.fire({
+        title: "สำเร็จ!",
+        text: "ออกจากระบบเรียบร้อยแล้วครับ!",
+        icon: "success",
+        timer: 1500, // ปิดเองภายใน 1.5 วินาที
+        showConfirmButton: false,
+        background: '#232321',
+        color: '#fff'
+      });
+
+      showUserMenu.value = false // ปิด Dropdown
+      router.push('/') // เด้งกลับหน้าแรก
+    }
   } catch (error) {
     console.error('เกิดข้อผิดพลาดในการออกจากระบบ:', error)
+    window.Swal.fire({
+      title: "เกิดข้อผิดพลาด",
+      text: "ไม่สามารถออกจากระบบได้ในขณะนี้",
+      icon: "error",
+      background: '#232321',
+      color: '#fff'
+    });
   }
 }
 

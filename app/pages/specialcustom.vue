@@ -360,7 +360,8 @@ onMounted(async () => {
   // ================= RESTORE DRAFT =================
   if (route.query.restore === 'special') {
     try {
-      const raw = localStorage.getItem('spinSpecialDraft');
+      const uid = auth.currentUser?.uid
+      const raw = uid ? localStorage.getItem(`spinSpecialDraft_${uid}`) : null;
       if (raw) {
         const draft = JSON.parse(raw);
 
@@ -808,6 +809,19 @@ async function saveSpecialOrder() {
 }
 
 function saveDraft() {
+  const uid = auth.currentUser?.uid
+  if (!uid) {
+    window.Swal?.fire({
+      title: 'กรุณาเข้าสู่ระบบ',
+      text: 'ต้องเข้าสู่ระบบก่อนจึงจะบันทึกการออกแบบค้างไว้ได้ครับ',
+      icon: 'warning',
+      background: '#232321',
+      color: '#ffffff',
+      confirmButtonColor: '#ff3b3b',
+      confirmButtonText: 'ตกลง',
+    })
+    return
+  }
   const draft = {
     savedAt: new Date().toISOString(),
     page: 'special',
@@ -818,9 +832,8 @@ function saveDraft() {
     discImageURL: discImageURL.value,
     audioURL: audioURL.value,
   };
-  localStorage.setItem('spinSpecialDraft', JSON.stringify(draft));
-  // อัปเดต spinCustomDraft ให้ profile รู้ว่ามี draft (ใช้ key เดียวกันกับที่ profile ตรวจ)
-  localStorage.setItem('spinCustomDraft', JSON.stringify({ ...draft, savedAt: draft.savedAt }));
+  // บันทึกแยกตาม userId เพื่อไม่ให้ draft ปนกันระหว่าง user
+  localStorage.setItem(`spinSpecialDraft_${uid}`, JSON.stringify(draft));
   draftSaved.value = true;
   setTimeout(() => { draftSaved.value = false; }, 3000);
 }

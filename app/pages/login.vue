@@ -11,7 +11,7 @@
         <div v-if="!isLogin" class="register-fields-container">
           
           <div class="input-group mb-3">
-            <label>ชื่อ-นามสกุล</label>
+            <label>ชื่อ</label>
             <input type="text" v-model="fullName" placeholder="ชื่อของคุณ" class="custom-input" required>
           </div>
 

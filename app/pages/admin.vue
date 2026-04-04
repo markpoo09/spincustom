@@ -416,6 +416,10 @@ import { ref, computed, onMounted } from 'vue'
 import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore'
 import { db } from '~/utils/firebase'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 const activeTab = ref('overview')
 
 // ===== USERS =====

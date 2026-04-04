@@ -111,18 +111,22 @@
         <!-- TAB: ORDERS -->
         <div v-if="activeTab === 'orders'" class="tab-content">
 
-          <!-- Draft Banner -->
-          <div v-if="hasDraft" class="draft-banner">
+          <!-- Draft Banners — รองรับทั้ง custom และ special -->
+          <div v-for="draft in drafts" :key="draft.page" class="draft-banner" :class="draft.page === 'special' ? 'draft-banner--special' : ''">
             <div class="draft-info">
-              <span class="draft-icon">🎛️</span>
+              <span class="draft-icon">{{ draft.page === 'special' ? '⭐' : '🎛️' }}</span>
               <div>
-                <p class="draft-title">มีการออกแบบค้างไว้</p>
-                <p class="draft-sub">บันทึกเมื่อ {{ draftSavedAt }}</p>
+                <p class="draft-title" :style="draft.page === 'special' ? 'color:#ff3b3b' : ''">
+                  {{ draft.label }}
+                </p>
+                <p class="draft-sub">บันทึกเมื่อ {{ formatDraftDate(draft.savedAt) }}</p>
               </div>
             </div>
             <div class="draft-actions">
-              <NuxtLink to="/custom?restore=1" class="btn-yellow draft-btn">↩ ไปต่อการออกแบบ</NuxtLink>
-              <button @click="clearDraft" class="btn-grey draft-btn-sm">ลบ draft</button>
+              <NuxtLink :to="draft.restoreTo" class="btn-yellow draft-btn" :style="draft.page === 'special' ? 'background:#ff3b3b;color:#fff' : ''">
+                ↩ ไปต่อการออกแบบ
+              </NuxtLink>
+              <button @click="clearDraft(draft.clearKey)" class="btn-grey draft-btn-sm">ลบ draft</button>
             </div>
           </div>
 
@@ -239,27 +243,59 @@ const isEditing = ref(false)
 const editData = ref({})
 const expandedOrderId = ref(null)
 
-// Draft design state
-const hasDraft = ref(false)
-const draftSavedAt = ref('')
+// Draft design state — รองรับทั้ง custom และ special
+const drafts = ref([]) // array ของ draft ทุกประเภท
 
-function checkDraft() {
+function checkDraft(uid) {
+  const found = []
+
+  // ตรวจ custom draft
   try {
-    const raw = localStorage.getItem('spinCustomDraft')
+    const raw = localStorage.getItem(`spinCustomDraft_${uid}`)
     if (raw) {
       const draft = JSON.parse(raw)
-      hasDraft.value = true
-      const d = new Date(draft.savedAt)
-      draftSavedAt.value = d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
-    } else {
-      hasDraft.value = false
+      found.push({
+        page: 'custom',
+        savedAt: draft.savedAt,
+        label: draft.selectedType ? `Custom Vinyl (Type ${draft.selectedType})` : 'Custom Vinyl',
+        restoreTo: '/custom?restore=1',
+        clearKey: `spinCustomDraft_${uid}`,
+      })
     }
-  } catch { hasDraft.value = false }
+  } catch {}
+
+  // ตรวจ special draft
+  try {
+    const raw = localStorage.getItem(`spinSpecialDraft_${uid}`)
+    if (raw) {
+      const draft = JSON.parse(raw)
+      const specialNames = ['RED HOT CHILI PEPPERS', 'BLUE & GREY EDITION']
+      found.push({
+        page: 'special',
+        savedAt: draft.savedAt,
+        label: specialNames[draft.selectedIndex] || 'Special Edition',
+        restoreTo: '/specialcustom?restore=special',
+        clearKey: `spinSpecialDraft_${uid}`,
+      })
+    }
+  } catch {}
+
+  drafts.value = found
 }
 
-function clearDraft() {
-  localStorage.removeItem('spinCustomDraft')
-  hasDraft.value = false
+// computed สำหรับ template เดิมที่ใช้ hasDraft (backward compat)
+const hasDraft = computed(() => drafts.value.length > 0)
+
+function clearDraft(clearKey) {
+  localStorage.removeItem(clearKey)
+  // reload จาก uid ปัจจุบัน
+  if (currentUser.value) checkDraft(currentUser.value.uid)
+}
+
+function formatDraftDate(isoString) {
+  if (!isoString) return ''
+  const d = new Date(isoString)
+  return d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 const userInitial = computed(() => {
@@ -334,10 +370,10 @@ const handleLogout = async () => {
 const toggleOrderDetail = (id) => { expandedOrderId.value = expandedOrderId.value === id ? null : id }
 
 onMounted(() => {
-  checkDraft()
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser.value = user
+      checkDraft(user.uid)
       await fetchUserData(user.uid)
       await fetchOrders(user.uid)
     }
@@ -418,6 +454,7 @@ onMounted(() => {
 .orders-list { display: flex; flex-direction: column; gap: 12px; }
 
 .draft-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: rgba(205,241,0,0.07); border: 1px solid rgba(205,241,0,0.3); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; flex-wrap: wrap; }
+.draft-banner--special { background: rgba(255,59,59,0.07); border-color: rgba(255,59,59,0.3); }
 .draft-info { display: flex; align-items: center; gap: 12px; }
 .draft-icon { font-size: 28px; }
 .draft-title { color: #CDF100; font-size: 14px; font-weight: 600; margin: 0 0 2px; }
