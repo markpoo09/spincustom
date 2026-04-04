@@ -208,8 +208,10 @@
                 <button @click="saveSpecialOrder" class="btn-yellow" style="width:100%;margin-bottom:8px; background-color: #ff3b3b; color: #fff;" :disabled="isSavingOrder">
                   {{ isSavingOrder ? 'กำลังบันทึก...' : ' บันทึกออเดอร์ลงระบบ' }}
                 </button>
-                <button @click="shareDesign" class="btn-dark-grey" style="width:100%">คัดลอก Link แชร์</button>
-                <div v-if="copySuccess" class="share-success text-red"> คัดลอก URL แล้ว!</div>
+                <button @click="saveDraft" class="btn-dark-grey" style="width:100%">
+                  {{ draftSaved ? '✅ บันทึกแล้ว!' : '💾 บันทึกการออกแบบค้างไว้' }}
+                </button>
+                <div v-if="draftSaved" class="share-success text-red"> บันทึกแล้ว — กลับมาต่อได้ที่หน้าโปรไฟล์!</div>
               </div>
             </div>
 
@@ -245,9 +247,10 @@ import * as fabric from "fabric";
 import { collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/utils/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
+const route = useRoute();
 
 // ================= STATE พื้นฐาน =================
 const currentStep = ref(1);
@@ -308,6 +311,7 @@ const audioDuration = ref(0);
 const thumbCanvasEl = ref(null);
 const previewDataURL = ref(null);
 const copySuccess = ref(false);
+const draftSaved = ref(false);
 const animationFrameId = ref(null);
 const rotationAngle = ref(0);
 
@@ -352,7 +356,45 @@ onMounted(async () => {
   onAuthStateChanged(auth, (user) => { isLoggedIn.value = !!user; });
   fCanvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400, backgroundColor: '#ffffff' });
   await fetchSpecialData();
-  await updatePreviewImage();
+
+  // ================= RESTORE DRAFT =================
+  if (route.query.restore === 'special') {
+    try {
+      const raw = localStorage.getItem('spinSpecialDraft');
+      if (raw) {
+        const draft = JSON.parse(raw);
+
+        // Restore state ทั้งหมด
+        selectedIndex.value = typeof draft.selectedIndex === 'number' ? draft.selectedIndex : 0;
+        customText.value = draft.customText || '';
+        vinylDiscPlaced.value = draft.vinylDiscPlaced || false;
+        if (draft.discImageURL) discImageURL.value = draft.discImageURL;
+        if (draft.audioURL) audioURL.value = draft.audioURL;
+
+        // Render canvas ก่อน แล้วค่อย jump ไป step ที่บันทึกไว้
+        await updatePreviewImage();
+
+        currentStep.value = draft.currentStep || 1;
+
+        window.Swal?.fire({
+          title: '↩ กลับมาต่อแล้ว!',
+          text: 'โหลดการออกแบบ Limited Edition ที่บันทึกไว้เรียบร้อย',
+          icon: 'success',
+          timer: 2200,
+          showConfirmButton: false,
+          background: '#232321',
+          color: '#ffffff',
+        });
+      } else {
+        await updatePreviewImage();
+      }
+    } catch (e) {
+      console.warn('โหลด draft ไม่สำเร็จ:', e);
+      await updatePreviewImage();
+    }
+  } else {
+    await updatePreviewImage();
+  }
 });
 
 // ดึงรูปภาพเครื่องเล่นมาแสดงเป็นพื้นหลังแบบแก้ไขไม่ได้
@@ -765,15 +807,29 @@ async function saveSpecialOrder() {
   }
 }
 
-function shareDesign() {
-  navigator.clipboard.writeText(window.location.href).then(() => { copySuccess.value = true; setTimeout(() => { copySuccess.value = false; }, 3000); });
+function saveDraft() {
+  const draft = {
+    savedAt: new Date().toISOString(),
+    page: 'special',
+    currentStep: currentStep.value,
+    selectedIndex: selectedIndex.value,
+    customText: customText.value,
+    vinylDiscPlaced: vinylDiscPlaced.value,
+    discImageURL: discImageURL.value,
+    audioURL: audioURL.value,
+  };
+  localStorage.setItem('spinSpecialDraft', JSON.stringify(draft));
+  // อัปเดต spinCustomDraft ให้ profile รู้ว่ามี draft (ใช้ key เดียวกันกับที่ profile ตรวจ)
+  localStorage.setItem('spinCustomDraft', JSON.stringify({ ...draft, savedAt: draft.savedAt }));
+  draftSaved.value = true;
+  setTimeout(() => { draftSaved.value = false; }, 3000);
 }
 
 function resetAll() {
   if (audioPlayerEl.value) { audioPlayerEl.value.pause(); audioPlayerEl.value.currentTime = 0; }
   customText.value = ""; vinylDiscPlaced.value = false; discImageURL.value = null; discImageFile.value = null;
   isPlaying.value = false; audioProgress.value = 0; currentTime.value = 0; audioDuration.value = 0; copySuccess.value = false;
-  stickerCount.value = 0; canvasObjectVersion.value = 0;
+  stickerCount.value = 0; canvasObjectVersion.value = 0; draftSaved.value = false;
   if (audioURL.value) { URL.revokeObjectURL(audioURL.value); audioURL.value = null; } audioFile.value = null;
   if (fCanvas) { fCanvas.clear(); fCanvas.backgroundColor = '#ffffff'; fCanvas.renderAll(); }
   currentStep.value = 1; updatePreviewImage();

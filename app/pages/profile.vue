@@ -110,6 +110,22 @@
 
         <!-- TAB: ORDERS -->
         <div v-if="activeTab === 'orders'" class="tab-content">
+
+          <!-- Draft Banner -->
+          <div v-if="hasDraft" class="draft-banner">
+            <div class="draft-info">
+              <span class="draft-icon">🎛️</span>
+              <div>
+                <p class="draft-title">มีการออกแบบค้างไว้</p>
+                <p class="draft-sub">บันทึกเมื่อ {{ draftSavedAt }}</p>
+              </div>
+            </div>
+            <div class="draft-actions">
+              <NuxtLink to="/custom?restore=1" class="btn-yellow draft-btn">↩ ไปต่อการออกแบบ</NuxtLink>
+              <button @click="clearDraft" class="btn-grey draft-btn-sm">ลบ draft</button>
+            </div>
+          </div>
+
           <div v-if="isLoadingOrders" class="loading-orders">
             <div class="spinner small"></div>
             <p>กำลังโหลดออเดอร์...</p>
@@ -131,7 +147,7 @@
             >
               <div class="order-card-header">
                 <div class="order-thumb-wrap">
-                  <img v-if="order.thumbnail" :src="order.thumbnail" class="order-thumb" alt="thumbnail">
+                  <img v-if="order.upload" :src="order.upload" class="order-thumb" alt="thumbnail">
                   <div v-else class="thumb-placeholder">🎵</div>
                 </div>
                 <div class="order-meta">
@@ -223,6 +239,29 @@ const isEditing = ref(false)
 const editData = ref({})
 const expandedOrderId = ref(null)
 
+// Draft design state
+const hasDraft = ref(false)
+const draftSavedAt = ref('')
+
+function checkDraft() {
+  try {
+    const raw = localStorage.getItem('spinCustomDraft')
+    if (raw) {
+      const draft = JSON.parse(raw)
+      hasDraft.value = true
+      const d = new Date(draft.savedAt)
+      draftSavedAt.value = d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })
+    } else {
+      hasDraft.value = false
+    }
+  } catch { hasDraft.value = false }
+}
+
+function clearDraft() {
+  localStorage.removeItem('spinCustomDraft')
+  hasDraft.value = false
+}
+
 const userInitial = computed(() => {
   const name = userData.value.name || currentUser.value?.email || '?'
   return name.charAt(0).toUpperCase()
@@ -295,6 +334,7 @@ const handleLogout = async () => {
 const toggleOrderDetail = (id) => { expandedOrderId.value = expandedOrderId.value === id ? null : id }
 
 onMounted(() => {
+  checkDraft()
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       currentUser.value = user
@@ -376,6 +416,16 @@ onMounted(() => {
 .empty-orders p { color: #888; margin: 0 0 8px; }
 
 .orders-list { display: flex; flex-direction: column; gap: 12px; }
+
+.draft-banner { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: rgba(205,241,0,0.07); border: 1px solid rgba(205,241,0,0.3); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; flex-wrap: wrap; }
+.draft-info { display: flex; align-items: center; gap: 12px; }
+.draft-icon { font-size: 28px; }
+.draft-title { color: #CDF100; font-size: 14px; font-weight: 600; margin: 0 0 2px; }
+.draft-sub { color: #888; font-size: 12px; margin: 0; }
+.draft-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.draft-btn { padding: 8px 18px; font-size: 13px; border-radius: 8px; text-decoration: none; }
+.draft-btn-sm { background: transparent; color: #888; border: 1px solid #444; padding: 7px 12px; border-radius: 8px; font-family: 'Prompt', sans-serif; font-size: 12px; cursor: pointer; transition: 0.2s; }
+.draft-btn-sm:hover { border-color: #ff5555; color: #ff5555; }
 .order-card { background: #232321; border: 1px solid #333; border-radius: 14px; overflow: hidden; cursor: pointer; transition: border-color 0.2s; }
 .order-card:hover { border-color: rgba(205,241,0,0.3); }
 .order-card-header { display: flex; align-items: center; gap: 16px; padding: 18px 20px; }

@@ -385,10 +385,10 @@
                 <button @click="saveOrder" class="btn-yellow" style="width:100%;margin-bottom:8px; background-color: #CDF100; color: #000;" :disabled="isSavingOrder">
                   {{ isSavingOrder ? 'กำลังบันทึก...' : ' บันทึกออเดอร์ลงระบบ' }}
                 </button>
-                <button @click="shareDesign" class="btn-dark-grey" style="width:100%">
-                  คัดลอก Link แชร์
+                <button @click="saveDraft" class="btn-dark-grey" style="width:100%">
+                  {{ draftSaved ? '✅ บันทึกแล้ว!' : '💾 บันทึกการออกแบบค้างไว้' }}
                 </button>
-                <div v-if="copySuccess" class="share-success"> คัดลอก URL แล้ว!</div>
+                <div v-if="draftSaved" class="share-success"> บันทึกแล้ว — กลับมาต่อได้ที่หน้าโปรไฟล์!</div>
               </div>
             </div>
 
@@ -428,7 +428,7 @@
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth, db } from '@/utils/firebase'
 import { ref, onMounted, computed, watch, nextTick } from "vue";
-import { useRouter } from 'vue-router' // 
+import { useRouter, useRoute } from 'vue-router'
 import * as fabric from "fabric";
 import Vinyl from "../../component/Vinyl.vue";
 import PickColor from "../../component/PickColor.vue";
@@ -436,6 +436,7 @@ import { collection, getDocs, query, addDoc, serverTimestamp } from 'firebase/fi
 
 // ================= STATE =================
 const router = useRouter()
+const route = useRoute()
 const currentStep = ref(1);
 const progressPercentage = computed(() => (currentStep.value / 6) * 100);
 const isSavingOrder = ref(false);
@@ -538,7 +539,27 @@ let animationFrameId = null;
 
 // Step 6
 const previewDataURL = ref(null);
-const copySuccess = ref(false);
+const copySuccess = ref(false)
+const draftSaved = ref(false)
+
+function saveDraft() {
+  const draft = {
+    savedAt: new Date().toISOString(),
+    currentStep: currentStep.value,
+    selectedType: selectedType.value,
+    selectedColors: selectedColors.value,
+    selectedTextures: selectedTextures.value,
+    bodyMode: bodyMode.value,
+    sideMode: sideMode.value,
+    customText: customText.value,
+    vinylDiscPlaced: vinylDiscPlaced.value,
+    discImageURL: discImageURL.value,
+    audioURL: audioURL.value,
+  }
+  localStorage.setItem('spinCustomDraft', JSON.stringify(draft))
+  draftSaved.value = true
+  setTimeout(() => { draftSaved.value = false }, 3000)
+};
 
 // ---- ราคา ----
 const basePrices = [3500, 4500, 3800, 6500];
@@ -588,7 +609,48 @@ onMounted(async () => {
     height: 400,
     backgroundColor: '#ffffff',
   });
-  await updatePreviewImage();
+
+  // ================= RESTORE DRAFT =================
+  if (route.query.restore === '1') {
+    try {
+      const raw = localStorage.getItem('spinCustomDraft')
+      if (raw) {
+        const draft = JSON.parse(raw)
+        // Restore step + design state
+        selectedType.value = draft.selectedType || 1
+        bodyMode.value = draft.bodyMode || 'texture'
+        sideMode.value = draft.sideMode || 'texture'
+        if (draft.selectedColors) selectedColors.value = { ...selectedColors.value, ...draft.selectedColors }
+        if (draft.selectedTextures) selectedTextures.value = { ...selectedTextures.value, ...draft.selectedTextures }
+        customText.value = draft.customText || ''
+        vinylDiscPlaced.value = draft.vinylDiscPlaced || false
+        if (draft.discImageURL) discImageURL.value = draft.discImageURL
+        if (draft.audioURL) audioURL.value = draft.audioURL
+
+        // Render canvas with restored state first, then jump to step
+        await updatePreviewImage()
+        await renderVinylToCanvas()
+
+        // Restore step last (after canvas is ready)
+        currentStep.value = draft.currentStep || 1
+
+        window.Swal?.fire({
+          title: '↩ กลับมาต่อแล้ว!',
+          text: 'โหลดการออกแบบที่บันทึกไว้เรียบร้อย',
+          icon: 'success',
+          timer: 2000,
+          showConfirmButton: false,
+          background: '#232321',
+          color: '#ffffff',
+        })
+      }
+    } catch (e) {
+      console.warn('โหลด draft ไม่สำเร็จ:', e)
+    }
+  } else {
+    await updatePreviewImage();
+  }
+
   await fetchStickers();
 });
 
