@@ -376,7 +376,8 @@
               <div class="tool-panel text-left">
                 <h4 class="panel-title-left mb-4"> ดาวน์โหลดผลงาน</h4>
                 <div class="download-preview mb-3">
-                  <canvas ref="thumbCanvasEl" width="300" height="200" class="thumb-canvas"></canvas>
+                  <img v-if="previewDataURL" :src="previewDataURL" class="thumb-canvas" alt="preview" />
+                  <div v-else class="no-preview-placeholder">กำลังโหลดตัวอย่าง...</div>
                 </div>
                 <button @click="downloadCanvas" class="btn-yellow" style="width:100%;margin-bottom:8px">
                    ดาวน์โหลดรูปภาพ (PNG)
@@ -536,7 +537,7 @@ let rotationAngle = 0;
 let animationFrameId = null;
 
 // Step 6
-const thumbCanvasEl = ref(null);
+const previewDataURL = ref(null);
 const copySuccess = ref(false);
 
 // ---- ราคา ----
@@ -1183,17 +1184,10 @@ function formatTime(secs) {
 
 // ================= STEP 6 FUNCTIONS =================
 async function renderThumbnail() {
-  if (!fCanvas || !thumbCanvasEl.value) return;
+  if (!fCanvas) return;
   fCanvas.discardActiveObject();
   fCanvas.renderAll();
-  const dataURL = fCanvas.toDataURL({ format: 'png', multiplier: 0.5 });
-  const img = new Image();
-  img.onload = () => {
-    const ctx = thumbCanvasEl.value.getContext('2d');
-    ctx.clearRect(0, 0, 300, 200);
-    ctx.drawImage(img, 0, 0, 300, 200);
-  };
-  img.src = dataURL;
+  previewDataURL.value = fCanvas.toDataURL({ format: 'png', multiplier: 0.5 });
 }
 
 function downloadCanvas() {
@@ -1512,6 +1506,7 @@ function resetAll() {
 .price-total { color: #CDF100; font-size: 22px; font-weight: 700; }
 .download-preview { background: #1a1a1a; border-radius: 8px; overflow: hidden; }
 .thumb-canvas { width: 100%; height: auto; border-radius: 8px; border: 1px solid #444; display: block; }
+.no-preview-placeholder { width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; color: #555; font-size: 13px; border: 1px solid #333; border-radius: 8px; }
 .share-success { color: #CDF100; font-size: 13px; margin-top: 8px; }
 .order-card { background: linear-gradient(135deg, #2a2a1a, #1a1a17); border: 1px solid rgba(205,241,0,0.2); border-radius: 16px; padding: 20px; margin-top: 20px; }
 .order-card-inner { display: flex; align-items: center; gap: 16px; }
