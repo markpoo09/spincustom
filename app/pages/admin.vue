@@ -148,7 +148,7 @@
             </thead>
             <tbody>
               <tr v-for="order in filteredOrders" :key="order.id">
-                <td><img v-if="order.thumbnail" :src="order.thumbnail" class="order-thumb" alt="Thumbnail"></td>
+                <td><img v-if="order.upload" :src="order.upload" class="order-thumb" alt="รูปภาพ"></td>
                 <td>{{ order.userEmail }}</td>
                 <td>{{ order.productName }}</td>
                 <td class="text-yellow">฿{{ (order.totalPrice || 0).toLocaleString() }}</td>
@@ -262,7 +262,7 @@
 
         <div class="modal-grid">
           <div class="modal-img-box">
-            <img :src="selectedOrder.thumbnail" class="modal-img" alt="Full Design">
+            <img :src="selectedOrder.upload" class="modal-img" alt="Full Design">
           </div>
           <div class="modal-info text-white">
             <p><strong>ผู้สั่งซื้อ:</strong> {{ selectedOrder.userEmail }}</p>

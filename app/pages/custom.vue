@@ -312,57 +312,29 @@
 
           <!-- ==================== STEP 5 ==================== -->
           <div v-else-if="currentStep === 5" class="step-container">
-            <h3 class="step-title">แผ่นเสียงหมุน </h3>
+            <h3 class="step-title">แผ่นเสียงหมุน</h3>
 
-            <audio ref="audioPlayerEl" v-if="audioURL" :src="audioURL" @ended="isPlaying = false" @timeupdate="updateProgress"></audio>
+            <audio ref="audioPlayerEl" v-if="audioURL" :src="audioURL" @ended="onAudioEnded" @timeupdate="updateProgress"></audio>
 
-            <div class="player-center">
-              <div class="turntable-stage">
-                <div class="spinning-disc" :class="{ playing: isPlaying }">
-                  <svg viewBox="0 0 300 300" width="260" height="260">
-                    <circle cx="150" cy="150" r="148" fill="#111" stroke="#333" stroke-width="2"/>
-                    <circle cx="150" cy="150" r="130" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
-                    <circle cx="150" cy="150" r="112" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
-                    <circle cx="150" cy="150" r="95" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
-                    <circle cx="150" cy="150" r="78" fill="none" stroke="#1e1e1e" stroke-width="1.5"/>
-                    <clipPath id="spinLabelClip">
-                      <circle cx="150" cy="150" r="55"/>
-                    </clipPath>
-                    <circle cx="150" cy="150" r="55" fill="#222"/>
-                    <image
-                      v-if="discImageURL"
-                      :href="discImageURL"
-                      x="95" y="95" width="110" height="110"
-                      clip-path="url(#spinLabelClip)"
-                      preserveAspectRatio="xMidYMid slice"
-                    />
-                    <circle cx="150" cy="150" r="7" fill="#CDF100"/>
-                  </svg>
-                  <div class="disc-shimmer"></div>
-                </div>
-
-                <div class="eq-bars" :class="{ active: isPlaying }">
-                  <span v-for="i in 9" :key="i" class="eq-bar" :style="{ animationDelay: (i * 0.08) + 's' }"></span>
-                </div>
+            <div class="player-controls" style="max-width:400px; margin: 16px auto 0;">
+              <div class="eq-bars mb-3" :class="{ active: isPlaying }" style="justify-content:center;">
+                <span v-for="i in 9" :key="i" class="eq-bar" :style="{ animationDelay: (i * 0.08) + 's' }"></span>
               </div>
-
-              <div class="player-controls">
-                <div class="progress-track" @click="seekAudio">
-                  <div class="progress-fill" :style="{ width: audioProgress + '%' }"></div>
-                </div>
-                <div class="time-labels">
-                  <span>{{ formatTime(currentTime) }}</span>
-                  <span>{{ formatTime(audioDuration) }}</span>
-                </div>
-                <div class="control-btns">
-                  <button class="ctrl-btn" @click="togglePlay" :disabled="!audioURL">
-                    <span>{{ isPlaying ? '⏸' : '▶' }}</span>
-                  </button>
-                  <button class="ctrl-btn" @click="stopAudio" :disabled="!audioURL">⏹</button>
-                </div>
-                <div v-if="!audioURL" class="hint-text" style="margin-top:8px;text-align:center">
-                  ยังไม่มีเสียง — กลับไป Step 4 เพื่อเพิ่มเสียง
-                </div>
+              <div class="progress-track" @click="seekAudio">
+                <div class="progress-fill" :style="{ width: audioProgress + '%' }"></div>
+              </div>
+              <div class="time-labels">
+                <span>{{ formatTime(currentTime) }}</span>
+                <span>{{ formatTime(audioDuration) }}</span>
+              </div>
+              <div class="control-btns">
+                <button class="ctrl-btn" @click="togglePlay" :disabled="!audioURL">
+                  <span>{{ isPlaying ? '⏸' : '▶' }}</span>
+                </button>
+                <button class="ctrl-btn" @click="stopAudio" :disabled="!audioURL">⏹</button>
+              </div>
+              <div v-if="!audioURL" class="hint-text" style="margin-top:8px;text-align:center">
+                ยังไม่มีเสียง — กลับไป Step 4 เพื่อเพิ่มเสียง
               </div>
             </div>
           </div>
@@ -560,6 +532,8 @@ const audioPlayerEl = ref(null);
 const audioProgress = ref(0);
 const currentTime = ref(0);
 const audioDuration = ref(0);
+let rotationAngle = 0;
+let animationFrameId = null;
 
 // Step 6
 const thumbCanvasEl = ref(null);
@@ -813,6 +787,11 @@ async function renderVinylToCanvas() {
 // ================= WATCHERS =================
 watch(selectedType, async () => { await updatePreviewImage(); });
 watch(currentStep, async (step) => {
+  stopDiscRotation();
+  if (isPlaying.value && audioPlayerEl.value) {
+    audioPlayerEl.value.pause();
+    isPlaying.value = false;
+  }
   if (step === 1) await updatePreviewImage();
   else if (step === 6) {
     await renderVinylToCanvas();
@@ -925,9 +904,49 @@ function deleteSelectedObject() {
 }
 
 // ================= STEP 4 FUNCTIONS =================
+
+// ตำแหน่งศูนย์กลางวงขาว (r=154.5) ของแต่ละ type ใน SVG coordinate
+// และขนาด SVG ที่ใช้ render บน canvas (600x400 * 0.9 scale)
+function getDiscSnapInfo() {
+  const t = selectedType.value;
+  // SVG viewBox ของแต่ละ type: type1,2 = 617x430 / type3,4 = 418x430
+  // scaleFactor ตอน render = min(600/svgW, 400/svgH) * 0.9
+  const svgW = (t === 1 || t === 2) ? 617 : 418;
+  const svgH = 430;
+  const scaleFactor = Math.min(600 / svgW, 400 / svgH) * 0.9;
+
+  // ตำแหน่ง cx, cy ของวงขาวใน SVG coordinate
+  const centers = {
+    1: { cx: 318, cy: 181 },
+    2: { cx: 219, cy: 181 },
+    3: { cx: 200, cy: 181 },
+    4: { cx: 200, cy: 181 },
+  };
+  const { cx, cy } = centers[t];
+
+  // แปลงจาก SVG coordinate → canvas coordinate
+  // SVG วาง originX/Y: center ที่ canvas center (300, 200)
+  const svgRenderW = svgW * scaleFactor;
+  const svgRenderH = svgH * scaleFactor;
+  const svgLeft = (600 - svgRenderW) / 2; // มุมซ้ายของ SVG บน canvas
+  const svgTop  = (400 - svgRenderH) / 2;
+
+  const canvasCX = svgLeft + cx * scaleFactor;
+  const canvasCY = svgTop  + cy * scaleFactor;
+
+  // r=154.5 ใน SVG → canvas pixels
+  // ต้องการแผ่นใหญ่กว่าวงขาว ~2-3 groove → r ≈ 154.5 + 20 = 174.5 → diameter = 349
+  const discDiameter = (154.5 + 20) * 2 * scaleFactor;
+
+  return { canvasCX, canvasCY, discDiameter };
+}
+
 function placeVinylDisc() {
   if (!fCanvas) return;
   vinylDiscPlaced.value = true;
+
+  const { canvasCX, canvasCY, discDiameter } = getDiscSnapInfo();
+
   const discSVG = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
     <circle cx="100" cy="100" r="98" fill="#111" stroke="#444" stroke-width="2"/>
     <circle cx="100" cy="100" r="80" fill="none" stroke="#252525" stroke-width="1.5"/>
@@ -936,13 +955,32 @@ function placeVinylDisc() {
     <circle cx="100" cy="100" r="35" fill="#1a1a1a" stroke="#333" stroke-width="1"/>
     <circle cx="100" cy="100" r="6" fill="#CDF100"/>
   </svg>`;
+
   const blob = new Blob([discSVG], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
+
   fabric.FabricImage.fromURL(url, { crossOrigin: 'anonymous' }).then(img => {
-    const scale = 150 / img.width;
-    img.set({ id: 'vinyl-disc', scaleX: scale, scaleY: scale, left: fCanvas.width / 2, top: fCanvas.height / 2, originX: 'center', originY: 'center', selectable: true, evented: true });
+    const scale = discDiameter / img.width;
+    img.set({
+      id: 'vinyl-disc',
+      scaleX: scale,
+      scaleY: scale,
+      left: canvasCX,
+      top: canvasCY,
+      originX: 'center',
+      originY: 'center',
+      // ล็อกทุกอย่าง — ขยับ/resize/rotate ไม่ได้
+      selectable: false,
+      evented: false,
+      lockMovementX: true,
+      lockMovementY: true,
+      lockScalingX: true,
+      lockScalingY: true,
+      lockRotation: true,
+      hasControls: false,
+      hasBorders: false,
+    });
     fCanvas.add(img);
-    fCanvas.setActiveObject(img);
     fCanvas.renderAll();
     URL.revokeObjectURL(url);
   });
@@ -959,20 +997,36 @@ function removeVinylDisc() {
   fCanvas.renderAll();
 }
 
-function handleDiscImageUpload(event) {
+async function handleDiscImageUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   discImageFile.value = file;
+
+  // แสดง preview ชั่วคราวระหว่าง upload
   const reader = new FileReader();
   reader.onload = (e) => { discImageURL.value = e.target.result; };
   reader.readAsDataURL(file);
+
+  // อัปโหลดไฟล์จริงขึ้น server
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      discImageURL.value = data.url; // ใช้ URL จาก server แทน base64
+    }
+  } catch (err) {
+    console.error('อัปโหลดรูปแผ่นเสียงไม่สำเร็จ:', err);
+  }
 }
 
 async function applyImageToDisc() {
   if (!fCanvas || !discImageURL.value) return;
   const disc = fCanvas.getObjects().find(o => o.id === 'vinyl-disc');
-  const cx = disc ? disc.left : fCanvas.width / 2;
-  const cy = disc ? disc.top : fCanvas.height / 2;
+  const { canvasCX, canvasCY, discDiameter } = getDiscSnapInfo();
+  const cx = disc ? disc.left : canvasCX;
+  const cy = disc ? disc.top  : canvasCY;
   const oldLabel = fCanvas.getObjects().find(o => o.id === 'disc-label');
   if (oldLabel) fCanvas.remove(oldLabel);
   const offscreen = document.createElement('canvas');
@@ -993,7 +1047,26 @@ async function applyImageToDisc() {
       ctx.globalCompositeOperation = 'source-over';
       const dataURL = offscreen.toDataURL();
       const labelImg = await fabric.FabricImage.fromURL(dataURL, { crossOrigin: 'anonymous' });
-      labelImg.set({ id: 'disc-label', left: cx, top: cy, originX: 'center', originY: 'center', selectable: false, evented: false });
+      // ขนาด label ≈ เส้นผ่านศูนย์กลางวงดำกลาง (r=35 ใน SVG 200px) * scale แผ่น
+      const labelScale = (discDiameter / 200) * (35 * 2) / labelImg.width;
+      labelImg.set({
+        id: 'disc-label',
+        left: cx,
+        top: cy,
+        originX: 'center',
+        originY: 'center',
+        scaleX: labelScale,
+        scaleY: labelScale,
+        selectable: false,
+        evented: false,
+        lockMovementX: true,
+        lockMovementY: true,
+        lockScalingX: true,
+        lockScalingY: true,
+        lockRotation: true,
+        hasControls: false,
+        hasBorders: false,
+      });
       fCanvas.add(labelImg);
       fCanvas.renderAll();
       resolve();
@@ -1002,26 +1075,92 @@ async function applyImageToDisc() {
   });
 }
 
-function handleAudioUpload(event) {
+async function handleAudioUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   audioFile.value = file;
-  if (audioURL.value) URL.revokeObjectURL(audioURL.value);
+
+  // revoke URL เก่าก่อน
+  if (audioURL.value && audioURL.value.startsWith('blob:')) {
+    URL.revokeObjectURL(audioURL.value);
+  }
+
+  // preview ชั่วคราวระหว่าง upload
   audioURL.value = URL.createObjectURL(file);
+
+  // อัปโหลดไฟล์จริงขึ้น server
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      URL.revokeObjectURL(audioURL.value); // ล้าง blob URL ชั่วคราว
+      audioURL.value = data.url; // ใช้ URL จาก server แทน
+    }
+  } catch (err) {
+    console.error('อัปโหลดไฟล์เสียงไม่สำเร็จ:', err);
+  }
 }
 
 // ================= STEP 5 FUNCTIONS =================
+function startDiscRotation() {
+  if (animationFrameId) return;
+  const discIds = ['vinyl-disc', 'disc-label'];
+  function animate() {
+    rotationAngle = (rotationAngle + 1.2) % 360;
+    if (fCanvas) {
+      discIds.forEach(id => {
+        const obj = fCanvas.getObjects().find(o => o.id === id);
+        if (obj) obj.set({ angle: rotationAngle });
+      });
+      fCanvas.renderAll();
+    }
+    animationFrameId = requestAnimationFrame(animate);
+  }
+  animationFrameId = requestAnimationFrame(animate);
+}
+
+function stopDiscRotation() {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+}
+
 function togglePlay() {
   if (!audioPlayerEl.value) return;
-  if (isPlaying.value) { audioPlayerEl.value.pause(); isPlaying.value = false; }
-  else { audioPlayerEl.value.play(); isPlaying.value = true; }
+  if (isPlaying.value) {
+    audioPlayerEl.value.pause();
+    isPlaying.value = false;
+    stopDiscRotation();
+  } else {
+    audioPlayerEl.value.play();
+    isPlaying.value = true;
+    startDiscRotation();
+  }
 }
+
 function stopAudio() {
   if (!audioPlayerEl.value) return;
   audioPlayerEl.value.pause();
   audioPlayerEl.value.currentTime = 0;
   isPlaying.value = false;
   audioProgress.value = 0;
+  stopDiscRotation();
+  rotationAngle = 0;
+  if (fCanvas) {
+    ['vinyl-disc', 'disc-label'].forEach(id => {
+      const obj = fCanvas.getObjects().find(o => o.id === id);
+      if (obj) obj.set({ angle: 0 });
+    });
+    fCanvas.renderAll();
+  }
+}
+
+function onAudioEnded() {
+  isPlaying.value = false;
+  stopDiscRotation();
 }
 function updateProgress() {
   if (!audioPlayerEl.value) return;
@@ -1100,10 +1239,23 @@ async function saveOrder() {
     fCanvas.renderAll();
     
     const thumbDataURL = fCanvas.toDataURL({
-      format: 'jpeg', 
-      quality: 0.7,     // ลดความละเอียดลงเพื่อไม่ให้หนัก Database
-      multiplier: 0.5   // ย่อขนาดรูปลงครึ่งนึง (เหมือนทำ Thumbnail)
+      format: 'jpeg',
+      quality: 0.7,
+      multiplier: 0.5
     });
+
+    // แปลง base64 dataURL → Blob → File แล้วอัปขึ้น /api/upload
+    const blob = await fetch(thumbDataURL).then(r => r.blob());
+    const thumbFile = new File([blob], `${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const formData = new FormData();
+    formData.append('file', thumbFile);
+
+    let thumbnailURL = null;
+    const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+    const uploadData = await uploadRes.json();
+    if (uploadData.success) {
+      thumbnailURL = uploadData.url; // เช่น /uploads/1234_thumbnail.jpg
+    }
     // ----------------------------------------------------
 
     // 3. จัดเตรียมข้อมูลที่จะส่งเข้า Database
@@ -1113,10 +1265,10 @@ async function saveOrder() {
       productName: vinylTypes.value[selectedType.value - 1].name,
       colors: selectedColors.value,
       customText: customText.value,
-      basePrice: basePrice.value,           // ✅ เพิ่มตรงนี้
-      stickerPrice: placedStickers.value.reduce((sum, s) => sum + (s.stickerPrice || 0), 0), // ✅
+      basePrice: basePrice.value,
+      stickerPrice: placedStickers.value.reduce((sum, s) => sum + (s.stickerPrice || 0), 0),
       totalPrice: totalPrice.value,
-      thumbnail: thumbDataURL,
+      upload: thumbnailURL,   // เก็บแค่ URL ไม่เก็บ base64
       status: 'pending',
       createdAt: serverTimestamp()
     };
