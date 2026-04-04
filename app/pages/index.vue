@@ -80,7 +80,7 @@
             <div class="step-number-circle">2</div>
             <div class="step-text">
               <p class="step-label text-highlight">ตกแต่ง</p>
-              <h3 class="step-name">เลือกสี</h3>
+              <h3 class="step-name">เลือกสีและลวดลาย</h3>
               <p class="step-detail">เลือกสีที่ชอบในแต่ละจุดของเครื่องที่กำหนดไว้ให้ใช้สำหรับตกแต่ง</p>
             </div>
             <div class="step-number-bg">02</div>
