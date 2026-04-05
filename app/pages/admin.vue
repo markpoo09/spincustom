@@ -416,6 +416,10 @@ import { ref, computed, onMounted } from 'vue'
 import { collection, getDocs, query, orderBy, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore'
 import { db } from '~/utils/firebase'
 
+definePageMeta({
+  layout: 'admin'
+})
+
 const activeTab = ref('overview')
 
 // ===== USERS =====
@@ -688,7 +692,8 @@ onMounted(() => {
 .custom-table tbody tr:hover { background-color: rgba(255,255,255,0.03); }
 
 /* Toolbar */
-.toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;}
+.toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap;
+}
 .search-input { flex: 1; min-width: 200px; padding: 10px 15px; border-radius: 8px; border: 1px solid #444; background: #232321; color: #fff; font-family: 'Prompt'; outline: none; font-size: 14px; }
 .search-input:focus { border-color: #CDF100; }
 .btn-export { background: #232321; color: #CDF100; border: 1px solid #CDF100; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-family: 'Prompt'; font-size: 14px; transition: 0.2s; white-space: nowrap; }
@@ -748,7 +753,7 @@ onMounted(() => {
 .modal-img { width: 100%; height: auto; border-radius: 4px; object-fit: contain; }
 .modal-info ul { padding-left: 20px; margin: 0; color: #ccc; }
 .total-price { font-size: 18px; }
-.color-details { font-size: 14px; color: #aaa; margin-top: 4px; }
+.color-details { font-size: 14px; color: #aaa; }
 
 /* Inputs */
 .input-group label { display: block; margin-bottom: 8px; color: #ddd; font-size: 14px; }

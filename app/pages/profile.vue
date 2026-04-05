@@ -162,9 +162,48 @@
                   <p class="order-price">฿{{ (order.totalPrice || 0).toLocaleString() }}</p>
                   <span class="status-badge" :class="'status-' + order.status">{{ statusLabel(order.status) }}</span>
                 </div>
+                <button
+                  v-if="order.audioUrl"
+                  class="vinyl-play-btn"
+                  :class="{ 'is-playing': playingOrderId === order.id }"
+                  @click.stop="toggleAudio(order)"
+                >
+                  <div class="vpb-disc" :class="{ 'spinning': playingOrderId === order.id }">
+                    <div class="vpb-disc-center"></div>
+                  </div>
+                  <span class="vpb-icon">{{ playingOrderId === order.id ? '⏸' : '▶' }}</span>
+                </button>
                 <span class="chevron" :class="{ open: expandedOrderId === order.id }">▾</span>
               </div>
-
+              <!-- Mini Player Bar -->
+              <transition name="player-slide">
+                <div v-if="playingOrderId === order.id && order.audioUrl" class="mini-player" @click.stop>
+                  <div class="mini-vinyl" :class="{ spinning: playingOrderId === order.id }">
+                    <div class="mini-vinyl-inner"></div>
+                  </div>
+                  <div class="mini-player-info">
+                    <p class="mini-player-title">🎵 {{ order.productName }}</p>
+                    <div class="mini-progress-bar">
+                      <div class="mini-progress-fill" :style="{ width: (audioProgress[order.id] || 0) + '%' }"></div>
+                    </div>
+                    <div class="mini-time">
+                      <span>{{ formatAudioTime(audioCurrent[order.id] || 0) }}</span>
+                      <span>{{ formatAudioTime(audioDurationMap[order.id] || 0) }}</span>
+                    </div>
+                  </div>
+                  <div class="mini-controls">
+                    <button class="mini-btn" @click="toggleAudio(order)">{{ playingOrderId === order.id ? '⏸' : '▶' }}</button>
+                    <button class="mini-btn" @click="stopAudio()">⏹</button>
+                  </div>
+                  <audio
+                    :ref="el => { if (el) audioRefs[order.id] = el }"
+                    :src="order.audioUrl"
+                    @timeupdate="onTimeUpdate(order.id, $event)"
+                    @loadedmetadata="onLoadedMeta(order.id, $event)"
+                    @ended="onAudioEnded(order.id)"
+                  ></audio>
+                </div>
+              </transition>
               <transition name="expand">
                 <div v-if="expandedOrderId === order.id" class="order-detail">
                   <div class="detail-divider"></div>
@@ -224,7 +263,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc } from 'firebase/firestore'
@@ -242,9 +281,65 @@ const activeTab = ref('info')
 const isEditing = ref(false)
 const editData = ref({})
 const expandedOrderId = ref(null)
+const playingOrderId = ref(null)
+const audioRefs = {}
+const audioProgress = ref({})
+const audioCurrent = ref({})
+const audioDurationMap = ref({})
+
+function toggleAudio(order) {
+  const el = audioRefs[order.id]
+  if (playingOrderId.value === order.id) {
+    if (el) el.pause()
+    playingOrderId.value = null
+  } else {
+    if (playingOrderId.value) {
+      const prev = audioRefs[playingOrderId.value]
+      if (prev) { prev.pause(); prev.currentTime = 0 }
+    }
+    playingOrderId.value = order.id
+    nextTick(() => {
+      const newEl = audioRefs[order.id]
+      if (newEl) newEl.play().catch(() => {})
+    })
+  }
+}
+
+function stopAudio() {
+  if (playingOrderId.value) {
+    const el = audioRefs[playingOrderId.value]
+    if (el) { el.pause(); el.currentTime = 0 }
+    playingOrderId.value = null
+  }
+}
+
+function onTimeUpdate(orderId, e) {
+  const el = e.target
+  if (!el.duration) return
+  audioCurrent.value = { ...audioCurrent.value, [orderId]: el.currentTime }
+  audioProgress.value = { ...audioProgress.value, [orderId]: (el.currentTime / el.duration) * 100 }
+}
+
+function onLoadedMeta(orderId, e) {
+  audioDurationMap.value = { ...audioDurationMap.value, [orderId]: e.target.duration }
+}
+
+function onAudioEnded(orderId) {
+  playingOrderId.value = null
+  audioProgress.value = { ...audioProgress.value, [orderId]: 0 }
+  audioCurrent.value = { ...audioCurrent.value, [orderId]: 0 }
+}
+
+function formatAudioTime(sec) {
+  if (!sec || isNaN(sec)) return '0:00'
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60).toString().padStart(2, '0')
+  return `${m}:${s}`
+}
 
 // Draft design state — รองรับทั้ง custom และ special
 const drafts = ref([]) // array ของ draft ทุกประเภท
+
 
 function checkDraft(uid) {
   const found = []
@@ -512,6 +607,33 @@ onMounted(() => {
 
 .expand-enter-active, .expand-leave-active { transition: opacity 0.25s ease, max-height 0.3s ease; max-height: 600px; overflow: hidden; }
 .expand-enter-from, .expand-leave-to { opacity: 0; max-height: 0; }
+
+/* Vinyl Play Button */
+.vinyl-play-btn { position: relative; width: 42px; height: 42px; border-radius: 50%; background: #1a1a1a; border: 2px solid #444; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: border-color 0.2s; overflow: hidden; }
+.vinyl-play-btn:hover, .vinyl-play-btn.is-playing { border-color: #CDF100; }
+.vpb-disc { width: 32px; height: 32px; border-radius: 50%; background: conic-gradient(#222 0deg, #333 60deg, #222 120deg, #333 180deg, #222 240deg, #333 300deg, #222 360deg); position: absolute; transition: 0.3s; }
+.vpb-disc.spinning { animation: spin 1.8s linear infinite; }
+.vpb-disc-center { width: 8px; height: 8px; border-radius: 50%; background: #CDF100; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.vpb-icon { position: relative; z-index: 2; font-size: 13px; color: #fff; text-shadow: 0 0 4px #000; }
+
+/* Mini Player */
+.mini-player { display: flex; align-items: center; gap: 14px; background: linear-gradient(135deg, #1a1a18, #232321); border-top: 1px solid rgba(205,241,0,0.2); padding: 12px 20px; }
+.mini-vinyl { width: 40px; height: 40px; border-radius: 50%; background: conic-gradient(#111 0deg, #2a2a2a 45deg, #111 90deg, #2a2a2a 135deg, #111 180deg, #2a2a2a 225deg, #111 270deg, #2a2a2a 315deg, #111 360deg); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.mini-vinyl.spinning { animation: spin 2s linear infinite; }
+.mini-vinyl-inner { width: 10px; height: 10px; border-radius: 50%; background: #CDF100; }
+.mini-player-info { flex: 1; min-width: 0; }
+.mini-player-title { color: #ccc; font-size: 12px; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-progress-bar { height: 3px; background: #333; border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+.mini-progress-fill { height: 100%; background: #CDF100; border-radius: 2px; transition: width 0.3s linear; }
+.mini-time { display: flex; justify-content: space-between; color: #555; font-size: 11px; }
+.mini-controls { display: flex; gap: 6px; flex-shrink: 0; }
+.mini-btn { background: #2a2a2a; border: 1px solid #444; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.mini-btn:hover { border-color: #CDF100; color: #CDF100; }
+
+/* Transitions */
+.player-slide-enter-active, .player-slide-leave-active { transition: max-height 0.3s ease, opacity 0.25s ease; max-height: 80px; overflow: hidden; }
+.player-slide-enter-from, .player-slide-leave-to { max-height: 0; opacity: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 @media (max-width: 600px) {
   .info-grid { grid-template-columns: 1fr; }

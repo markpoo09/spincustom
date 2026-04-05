@@ -360,7 +360,14 @@ onMounted(async () => {
   // ================= RESTORE DRAFT =================
   if (route.query.restore === 'special') {
     try {
-      const uid = auth.currentUser?.uid
+      // รอ Firebase Auth init ก่อน แทนที่จะ read auth.currentUser ตรงๆ
+      const uid = await new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          unsubscribe();
+          resolve(user?.uid || null);
+        });
+      });
+
       const raw = uid ? localStorage.getItem(`spinSpecialDraft_${uid}`) : null;
       if (raw) {
         const draft = JSON.parse(raw);
@@ -372,8 +379,62 @@ onMounted(async () => {
         if (draft.discImageURL) discImageURL.value = draft.discImageURL;
         if (draft.audioURL) audioURL.value = draft.audioURL;
 
-        // Render canvas ก่อน แล้วค่อย jump ไป step ที่บันทึกไว้
+        // render canvas หลังจาก state restore ครบแล้ว
+        await nextTick();
         await updatePreviewImage();
+
+        // restore canvas objects (text และ sticker)
+        if (draft.canvasObjects) {
+          for (const obj of draft.canvasObjects) {
+            if (obj.id === 'custom-name-text') {
+              const textObj = new fabric.IText(obj.text, {
+                left: obj.left,
+                top: obj.top,
+                scaleX: obj.scaleX,
+                scaleY: obj.scaleY,
+                angle: obj.angle,
+                fontFamily: obj.fontFamily || 'Prompt',
+                fontSize: obj.fontSize || 32,
+                fill: obj.fill || '#ff3b3b',
+                id: 'custom-name-text',
+                selectable: obj.selectable,
+                evented: obj.evented,
+              });
+              fCanvas.add(textObj);
+            } else if (obj.id === 'custom-sticker') {
+              fabric.FabricImage.fromURL(obj.stickerData.image, { crossOrigin: 'anonymous' }).then(img => {
+                img.set({
+                  left: obj.left,
+                  top: obj.top,
+                  scaleX: obj.scaleX,
+                  scaleY: obj.scaleY,
+                  angle: obj.angle,
+                  id: 'custom-sticker',
+                  stickerData: obj.stickerData,
+                  stickerPrice: obj.stickerPrice,
+                  selectable: obj.selectable,
+                  evented: obj.evented,
+                });
+                fCanvas.add(img);
+                fCanvas.renderAll();
+              });
+            }
+          }
+        }
+
+        // restore vinyl disc
+        if (vinylDiscPlaced.value) {
+          placeVinylDisc();
+          if (discImageURL.value) {
+            await applyImageToDisc();
+          }
+        }
+
+        // update reactive counters
+        stickerCount.value = draft.canvasObjects
+          ? draft.canvasObjects.filter(o => o.id === 'custom-sticker').length
+          : 0;
+        canvasObjectVersion.value++;
 
         currentStep.value = draft.currentStep || 1;
 
@@ -465,7 +526,7 @@ async function addStickerToCanvas(stickerData) {
   try {
     const img = await fabric.FabricImage.fromURL(stickerData.image, { crossOrigin: "anonymous" });
     const scaleFactor = 80 / img.width;
-    img.set({ left: fCanvas.width / 2, top: fCanvas.height / 2, originX: "center", originY: "center", scaleX: scaleFactor, scaleY: scaleFactor, id: "custom-sticker", stickerPrice: typeof stickerData.price === 'number' ? stickerData.price : 50 });
+    img.set({ left: fCanvas.width / 2, top: fCanvas.height / 2, originX: "center", originY: "center", scaleX: scaleFactor, scaleY: scaleFactor, id: "custom-sticker", stickerData: stickerData, stickerPrice: typeof stickerData.price === 'number' ? stickerData.price : 50 });
     fCanvas.add(img); fCanvas.setActiveObject(img); fCanvas.renderAll();
     stickerCount.value++; canvasObjectVersion.value++;
   } catch (error) { console.error("โหลดรูปสติกเกอร์ไม่สำเร็จ:", error); }
@@ -785,7 +846,8 @@ async function saveSpecialOrder() {
       productName: activeCollection.value.campaign_name + " (Special Edition)",
       customText: customText.value,
       totalPrice: totalPrice.value,
-      thumbnail: thumbnailURL, // เก็บแค่ URL ไม่เก็บ base64
+      upload: thumbnailURL,   // เก็บแค่ URL ไม่เก็บ base64
+      audioUrl: audioURL.value || null,
       status: 'pending',
       createdAt: serverTimestamp()
     };
@@ -831,6 +893,28 @@ function saveDraft() {
     vinylDiscPlaced: vinylDiscPlaced.value,
     discImageURL: discImageURL.value,
     audioURL: audioURL.value,
+    canvasObjects: fCanvas ? fCanvas.getObjects().filter(o => ['custom-name-text', 'custom-sticker'].includes(o.id)).map(o => {
+      const obj = {
+        id: o.id,
+        left: o.left,
+        top: o.top,
+        scaleX: o.scaleX,
+        scaleY: o.scaleY,
+        angle: o.angle,
+        selectable: o.selectable,
+        evented: o.evented
+      }
+      if (o.id === 'custom-name-text') {
+        obj.text = o.text
+        obj.fontSize = o.fontSize
+        obj.fill = o.fill
+        obj.fontFamily = o.fontFamily
+      } else if (o.id === 'custom-sticker') {
+        obj.stickerData = o.stickerData
+        obj.stickerPrice = o.stickerPrice
+      }
+      return obj
+    }) : []
   };
   // บันทึกแยกตาม userId เพื่อไม่ให้ draft ปนกันระหว่าง user
   localStorage.setItem(`spinSpecialDraft_${uid}`, JSON.stringify(draft));

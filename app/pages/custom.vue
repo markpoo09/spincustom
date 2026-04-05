@@ -541,41 +541,6 @@ let animationFrameId = null;
 const previewDataURL = ref(null);
 const copySuccess = ref(false)
 const draftSaved = ref(false)
-
-function saveDraft() {
-  const uid = auth.currentUser?.uid
-  if (!uid) {
-    window.Swal?.fire({
-      title: 'กรุณาเข้าสู่ระบบ',
-      text: 'ต้องเข้าสู่ระบบก่อนจึงจะบันทึกการออกแบบค้างไว้ได้ครับ',
-      icon: 'warning',
-      background: '#232321',
-      color: '#ffffff',
-      confirmButtonColor: '#CDF100',
-      confirmButtonText: '<span style="color:#000;font-weight:600;">ตกลง</span>',
-    })
-    return
-  }
-  const draft = {
-    savedAt: new Date().toISOString(),
-    page: 'custom',
-    currentStep: currentStep.value,
-    selectedType: selectedType.value,
-    selectedColors: selectedColors.value,
-    selectedTextures: selectedTextures.value,
-    bodyMode: bodyMode.value,
-    sideMode: sideMode.value,
-    customText: customText.value,
-    vinylDiscPlaced: vinylDiscPlaced.value,
-    discImageURL: discImageURL.value,
-    audioURL: audioURL.value,
-  }
-  // บันทึกแยกตาม userId เพื่อไม่ให้ draft ปนกันระหว่าง user
-  localStorage.setItem(`spinCustomDraft_${uid}`, JSON.stringify(draft))
-  draftSaved.value = true
-  setTimeout(() => { draftSaved.value = false }, 3000)
-};
-
 // ---- ราคา ----
 const basePrices = [3500, 4500, 3800, 6500];
 const basePrice = computed(() => basePrices[selectedType.value - 1]);
@@ -628,11 +593,17 @@ onMounted(async () => {
   // ================= RESTORE DRAFT =================
   if (route.query.restore === '1') {
     try {
-      const uid = auth.currentUser?.uid
+      // ✅ FIX: รอ Firebase Auth init ก่อน แทนที่จะ read auth.currentUser ตรงๆ
+      const uid = await new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+          unsubscribe()
+          resolve(user?.uid || null)
+        })
+      })
+
       const raw = uid ? localStorage.getItem(`spinCustomDraft_${uid}`) : null
       if (raw) {
         const draft = JSON.parse(raw)
-        // Restore step + design state
         selectedType.value = draft.selectedType || 1
         bodyMode.value = draft.bodyMode || 'texture'
         sideMode.value = draft.sideMode || 'texture'
@@ -643,11 +614,62 @@ onMounted(async () => {
         if (draft.discImageURL) discImageURL.value = draft.discImageURL
         if (draft.audioURL) audioURL.value = draft.audioURL
 
-        // Render canvas with restored state first, then jump to step
+        // ✅ FIX: render canvas หลังจาก state restore ครบแล้ว
+        await nextTick()
         await updatePreviewImage()
         await renderVinylToCanvas()
 
-        // Restore step last (after canvas is ready)
+        // restore canvas objects
+        if (draft.canvasObjects) {
+          for (const obj of draft.canvasObjects) {
+            if (obj.id === 'custom-name-text') {
+              const textObj = new fabric.IText(obj.text, {
+                left: obj.left,
+                top: obj.top,
+                scaleX: obj.scaleX,
+                scaleY: obj.scaleY,
+                angle: obj.angle,
+                fontFamily: obj.fontFamily || 'Prompt',
+                fontSize: obj.fontSize || 32,
+                fill: obj.fill || '#CDF100',
+                id: 'custom-name-text',
+                selectable: obj.selectable,
+                evented: obj.evented
+              })
+              fCanvas.add(textObj)
+            } else if (obj.id === 'custom-sticker') {
+              fabric.FabricImage.fromURL(obj.stickerData.image, { crossOrigin: 'anonymous' }).then(img => {
+                img.set({
+                  left: obj.left,
+                  top: obj.top,
+                  scaleX: obj.scaleX,
+                  scaleY: obj.scaleY,
+                  angle: obj.angle,
+                  id: 'custom-sticker',
+                  stickerData: obj.stickerData,
+                  stickerPrice: obj.stickerPrice,
+                  selectable: obj.selectable,
+                  evented: obj.evented
+                })
+                fCanvas.add(img)
+                fCanvas.renderAll()
+              })
+            }
+          }
+        }
+
+        // restore vinyl disc
+        if (vinylDiscPlaced.value) {
+          placeVinylDisc()
+          if (discImageURL.value) {
+            await applyImageToDisc()
+          }
+        }
+
+        // update counts
+        stickerCount.value = draft.canvasObjects ? draft.canvasObjects.filter(o => o.id === 'custom-sticker').length : 0
+        canvasObjectVersion.value++
+
         currentStep.value = draft.currentStep || 1
 
         window.Swal?.fire({
@@ -669,7 +691,61 @@ onMounted(async () => {
 
   await fetchStickers();
 });
-
+function saveDraft() {
+  const uid = auth.currentUser?.uid
+  if (!uid) {
+    window.Swal?.fire({
+      title: 'กรุณาเข้าสู่ระบบ',
+      text: 'ต้องเข้าสู่ระบบก่อนจึงจะบันทึกการออกแบบค้างไว้ได้ครับ',
+      icon: 'warning',
+      background: '#232321',
+      color: '#ffffff',
+      confirmButtonColor: '#CDF100',
+      confirmButtonText: '<span style="color:#000;font-weight:600;">ตกลง</span>',
+    })
+    return
+  }
+  const draft = {
+    savedAt: new Date().toISOString(),
+    page: 'custom',
+    currentStep: currentStep.value,
+    selectedType: selectedType.value,
+    selectedColors: selectedColors.value,
+    selectedTextures: selectedTextures.value,
+    bodyMode: bodyMode.value,
+    sideMode: sideMode.value,
+    customText: customText.value,
+    vinylDiscPlaced: vinylDiscPlaced.value,
+    discImageURL: discImageURL.value,
+    audioURL: audioURL.value,
+    canvasObjects: fCanvas ? fCanvas.getObjects().filter(o => ['custom-name-text', 'custom-sticker'].includes(o.id)).map(o => {
+      const obj = {
+        id: o.id,
+        left: o.left,
+        top: o.top,
+        scaleX: o.scaleX,
+        scaleY: o.scaleY,
+        angle: o.angle,
+        selectable: o.selectable,
+        evented: o.evented
+      }
+      if (o.id === 'custom-name-text') {
+        obj.text = o.text
+        obj.fontSize = o.fontSize
+        obj.fill = o.fill
+        obj.fontFamily = o.fontFamily
+      } else if (o.id === 'custom-sticker') {
+        obj.stickerData = o.stickerData
+        obj.stickerPrice = o.stickerPrice
+      }
+      return obj
+    }) : []
+  }
+  // บันทึกแยกตาม userId เพื่อไม่ให้ draft ปนกันระหว่าง user
+  localStorage.setItem(`spinCustomDraft_${uid}`, JSON.stringify(draft))
+  draftSaved.value = true
+  setTimeout(() => { draftSaved.value = false }, 3000)
+};
 // ================= BASE LAYER HELPERS =================
 function clearBaseLayer() {
   if (!fCanvas) return;
@@ -954,6 +1030,7 @@ async function addStickerToCanvas(stickerData) {
       scaleX: scaleFactor,
       scaleY: scaleFactor,
       id: "custom-sticker",
+      stickerData: stickerData,
       // ✅ FIX: ใช้ stickerData.price (field จาก Firestore) ไม่ใช่ .stickerPrice
       stickerPrice: typeof stickerData.price === 'number' ? stickerData.price : 1000,
     });
@@ -1354,11 +1431,13 @@ async function saveOrder() {
       stickerPrice: placedStickers.value.reduce((sum, s) => sum + (s.stickerPrice || 0), 0),
       totalPrice: totalPrice.value,
       upload: thumbnailURL,   // เก็บแค่ URL ไม่เก็บ base64
+      audioUrl: audioURL.value || null,
       status: 'pending',
       createdAt: serverTimestamp()
     };
     await addDoc(collection(db, 'orders'), orderData);
-    
+    const uid = auth.currentUser?.uid
+    if (uid) localStorage.removeItem(`spinCustomDraft_${uid}`)
     // เด้ง Popup แจ้งเตือนสั่งซื้อสำเร็จ
     window.Swal.fire({
       title: "บันทึกออเดอร์สำเร็จ!",
@@ -1427,7 +1506,8 @@ function resetAll() {
     fCanvas.backgroundColor = '#ffffff';
     fCanvas.renderAll();
   }
-
+  const uid = auth.currentUser?.uid
+  if (uid) localStorage.removeItem(`spinCustomDraft_${uid}`)
   // กลับ step 1 — watch จะ trigger updatePreviewImage()
   currentStep.value = 1;
   
