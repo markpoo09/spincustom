@@ -10,7 +10,7 @@
 
       <!-- NOT LOGGED IN -->
       <div v-else-if="!currentUser" class="not-logged-in">
-        <div class="empty-icon">🔐</div>
+        <div class="empty-icon"><i class="fa-solid fa-user-lock"></i></div>
         <h2>กรุณาเข้าสู่ระบบก่อน</h2>
         <p>คุณต้องล็อกอินเพื่อดูหน้าโปรไฟล์</p>
         <NuxtLink to="/login" class="btn-yellow">เข้าสู่ระบบ</NuxtLink>
@@ -26,7 +26,7 @@
             <p class="header-label">SPINCUSTOM MEMBER</p>
             <h1 class="header-name">{{ userData.name || currentUser.email }}</h1>
             <span class="role-badge" :class="userData.role === 'admin' ? 'role-admin' : 'role-player'">
-              {{ userData.role === 'admin' ? '⚙️ Admin' : '🎵 Player' }}
+              {{ userData.role === 'admin' ? 'Admin' : 'Player' }}
             </span>
           </div>
           <button @click="handleLogout" class="btn-logout">ออกจากระบบ</button>
@@ -34,12 +34,12 @@
 
         <!-- TABS -->
         <div class="tab-bar">
-          <button class="tab-btn" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
-            👤 ข้อมูลส่วนตัว
-          </button>
           <button class="tab-btn" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">
-            📦 ออเดอร์ของฉัน
+            ออเดอร์ของฉัน
             <span v-if="orders.length > 0" class="tab-badge">{{ orders.length }}</span>
+          </button>
+          <button class="tab-btn" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
+            ข้อมูลส่วนตัว
           </button>
         </div>
 
@@ -47,7 +47,7 @@
         <div v-if="activeTab === 'info'" class="tab-content">
           <div v-if="!isEditing" class="info-grid">
             <div class="info-card">
-              <p class="info-label">ชื่อ-นามสกุล</p>
+              <p class="info-label">ชื่อของคุณ</p>
               <p class="info-value">{{ userData.name || '-' }}</p>
             </div>
             <div class="info-card">
@@ -63,7 +63,7 @@
               <p class="info-value">{{ userData.phone || '-' }}</p>
             </div>
             <div class="info-card full-width">
-              <p class="info-label">วงดนตรีที่ชอบ 🎸</p>
+              <p class="info-label">วงดนตรีที่ชอบ</p>
               <p class="info-value highlight">{{ userData.favoriteBand || '-' }}</p>
             </div>
             <div class="info-card">
@@ -78,7 +78,7 @@
 
           <div v-else class="edit-form">
             <div class="input-group mb-3">
-              <label>ชื่อ-นามสกุล</label>
+              <label>ชื่อ</label>
               <input type="text" v-model="editData.name" class="custom-input" placeholder="ชื่อของคุณ">
             </div>
             <div class="d-flex gap-2 mb-3">
@@ -92,19 +92,19 @@
               </div>
             </div>
             <div class="input-group mb-4">
-              <label>วงดนตรีที่ชอบ 🎸</label>
+              <label>วงดนตรีที่ชอบ</label>
               <input type="text" v-model="editData.favoriteBand" class="custom-input" placeholder="เช่น Arctic Monkeys, Bodyslam...">
             </div>
             <div class="d-flex gap-2">
               <button @click="isEditing = false" class="btn-grey flex-fill">ยกเลิก</button>
               <button @click="saveProfile" :disabled="isSaving" class="btn-yellow flex-fill">
-                {{ isSaving ? 'กำลังบันทึก...' : '💾 บันทึก' }}
+                {{ isSaving ? 'กำลังบันทึก...' : 'บันทึก' }}
               </button>
             </div>
           </div>
 
           <div v-if="!isEditing" class="text-center mt-4">
-            <button @click="startEditing" class="btn-outline-yellow">✏️ แก้ไขข้อมูล</button>
+            <button @click="startEditing" class="btn-outline-yellow"><i class="fa-solid fa-edit" style="color: #2196f3;"></i> แก้ไขข้อมูล</button>
           </div>
         </div>
 
@@ -114,7 +114,7 @@
           <!-- Draft Banners — รองรับทั้ง custom และ special -->
           <div v-for="draft in drafts" :key="draft.page" class="draft-banner" :class="draft.page === 'special' ? 'draft-banner--special' : ''">
             <div class="draft-info">
-              <span class="draft-icon">{{ draft.page === 'special' ? '⭐' : '🎛️' }}</span>
+              <span class="draft-icon"><i class="fa-solid" :class="draft.page === 'special' ? 'fa-star' : 'fa-sliders'" :style="draft.page === 'special' ? 'color: #ff3b3b;' : 'color: #CDF100;'"></i></span>
               <div>
                 <p class="draft-title" :style="draft.page === 'special' ? 'color:#ff3b3b' : ''">
                   {{ draft.label }}
@@ -136,7 +136,7 @@
           </div>
 
           <div v-else-if="orders.length === 0" class="empty-orders">
-            <div class="empty-icon">📭</div>
+            <div class="empty-icon"><i class="fa-solid fa-envelope-open" style="color: #888;"></i></div>
             <h3>ยังไม่มีออเดอร์</h3>
             <p>เริ่มออกแบบเครื่องเล่นแผ่นเสียงของคุณได้เลย!</p>
             <NuxtLink to="/custom" class="btn-yellow">START CUSTOMIZING</NuxtLink>
@@ -152,7 +152,7 @@
               <div class="order-card-header">
                 <div class="order-thumb-wrap">
                   <img v-if="order.upload" :src="order.upload" class="order-thumb" alt="thumbnail">
-                  <div v-else class="thumb-placeholder">🎵</div>
+                  <div v-else class="thumb-placeholder"><i class="fa-solid fa-music" style="color: #CDF100;"></i></div>
                 </div>
                 <div class="order-meta">
                   <p class="order-product">{{ order.productName || 'เครื่องเล่นแผ่นเสียง' }}</p>
@@ -160,7 +160,7 @@
                 </div>
                 <div class="order-right">
                   <p class="order-price">฿{{ (order.totalPrice || 0).toLocaleString() }}</p>
-                  <span class="status-badge" :class="'status-' + order.status">{{ statusLabel(order.status) }}</span>
+                  <span class="status-badge" :class="'status-' + order.status" v-html="statusLabel(order.status)"></span>
                 </div>
                 <button
                   v-if="order.audioUrl"
@@ -171,7 +171,7 @@
                   <div class="vpb-disc" :class="{ 'spinning': playingOrderId === order.id }">
                     <div class="vpb-disc-center"></div>
                   </div>
-                  <span class="vpb-icon">{{ playingOrderId === order.id ? '⏸' : '▶' }}</span>
+                  <span class="vpb-icon"><i class="fa-solid" :class="playingOrderId === order.id ? 'fa-pause' : 'fa-play'" style="color: #fff;"></i></span>
                 </button>
                 <span class="chevron" :class="{ open: expandedOrderId === order.id }">▾</span>
               </div>
@@ -182,7 +182,7 @@
                     <div class="mini-vinyl-inner"></div>
                   </div>
                   <div class="mini-player-info">
-                    <p class="mini-player-title">🎵 {{ order.productName }}</p>
+                    <p class="mini-player-title"><i class="fa-solid fa-music" style="color: #CDF100;"></i> {{ order.productName }}</p>
                     <div class="mini-progress-bar">
                       <div class="mini-progress-fill" :style="{ width: (audioProgress[order.id] || 0) + '%' }"></div>
                     </div>
@@ -192,8 +192,8 @@
                     </div>
                   </div>
                   <div class="mini-controls">
-                    <button class="mini-btn" @click="toggleAudio(order)">{{ playingOrderId === order.id ? '⏸' : '▶' }}</button>
-                    <button class="mini-btn" @click="stopAudio()">⏹</button>
+                    <button class="mini-btn" @click="toggleAudio(order)"><i class="fa-solid" :class="playingOrderId === order.id ? 'fa-pause' : 'fa-play'" style="color: #fff;"></i></button>
+                    <button class="mini-btn" @click="stopAudio()"><i class="fa-solid fa-stop" style="color: #fff;"></i></button>
                   </div>
                   <audio
                     :ref="el => { if (el) audioRefs[order.id] = el }"
@@ -228,11 +228,11 @@
 
                   <!-- Tracking -->
                   <div v-if="order.trackingNumber" class="tracking-box">
-                    <p class="tracking-label">🚚 หมายเลขติดตามพัสดุ</p>
+                    <p class="tracking-label">หมายเลขติดตามพัสดุ</p>
                     <p class="tracking-number">{{ order.trackingNumber }}</p>
                   </div>
                   <div v-else-if="order.status !== 'completed'" class="tracking-box pending">
-                    <p class="tracking-label">⏳ กำลังรอหมายเลขติดตาม</p>
+                    <p class="tracking-label">กำลังรอหมายเลขติดตาม</p>
                     <p style="color:#888; font-size:13px; margin:0;">ระบบจะอัปเดตเมื่อพัสดุถูกจัดส่ง</p>
                   </div>
 
@@ -248,7 +248,7 @@
 
                   <!-- Admin Note -->
                   <div v-if="order.adminNote" class="admin-note-box">
-                    <p class="admin-note-label">📝 หมายเหตุจากร้าน</p>
+                    <p class="admin-note-label">หมายเหตุจากร้าน</p>
                     <p class="admin-note-text">{{ order.adminNote }}</p>
                   </div>
                 </div>
@@ -405,9 +405,9 @@ const formatDate = (timestamp) => {
 }
 
 const statusLabel = (status) => ({
-  pending: '⏳ รอดำเนินการ',
-  processing: '🔧 กำลังผลิต',
-  completed: '✅ จัดส่งแล้ว'
+  pending: '<i class="fa-solid fa-clock" style="color: #ffb74d;"></i> รอดำเนินการ',
+  processing: '<i class="fa-solid fa-wrench" style="color: #64b5f6;"></i> กำลังผลิต',
+  completed: '<i class="fa-solid fa-check-circle" style="color: #81c784;"></i> จัดส่งแล้ว'
 }[status] || status)
 
 const fetchUserData = async (uid) => {

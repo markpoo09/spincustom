@@ -8,50 +8,50 @@
       </div>
 
       <div class="admin-tabs mb-4 d-flex justify-content-center gap-3 flex-wrap">
-        <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">📊 Overview</button>
-        <button class="tab-btn" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">👥 ข้อมูลผู้เล่น</button>
-        <button class="tab-btn" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">📦 รายการออเดอร์</button>
-        <button class="tab-btn" :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'">📀 จัดการสินค้า</button>
-        <button class="tab-btn" :class="{ active: activeTab === 'stickers' }" @click="activeTab = 'stickers'">🎨 สติ๊กเกอร์</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'overview' }" @click="activeTab = 'overview'">Overview</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">ข้อมูลผู้เล่น</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">รายการออเดอร์</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'products' }" @click="activeTab = 'products'">จัดการสินค้า</button>
+        <button class="tab-btn" :class="{ active: activeTab === 'stickers' }" @click="activeTab = 'stickers'">สติ๊กเกอร์</button>
       </div>
 
       <!-- ==================== TAB: OVERVIEW ==================== -->
       <div v-if="activeTab === 'overview'">
         <div class="kpi-grid mb-4">
           <div class="kpi-card">
-            <div class="kpi-icon">📦</div>
+            <div class="kpi-icon"><i class="fa-solid fa-box"></i></div>
             <div class="kpi-value text-yellow">{{ orders.length }}</div>
             <div class="kpi-label">ออเดอร์ทั้งหมด</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-icon">⏳</div>
+            <div class="kpi-icon"><i class="fa-solid fa-clock"></i></div>
             <div class="kpi-value" style="color:#ff9800">{{ orders.filter(o => o.status === 'pending').length }}</div>
             <div class="kpi-label">รอดำเนินการ</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-icon">🔧</div>
+            <div class="kpi-icon"><i class="fa-solid fa-wrench"></i></div>
             <div class="kpi-value" style="color:#2196f3">{{ orders.filter(o => o.status === 'processing').length }}</div>
             <div class="kpi-label">กำลังผลิต</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-icon">✅</div>
+            <div class="kpi-icon"><i class="fa-solid fa-check-circle"></i></div>
             <div class="kpi-value" style="color:#4caf50">{{ orders.filter(o => o.status === 'completed').length }}</div>
             <div class="kpi-label">จัดส่งแล้ว</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-icon">💰</div>
+            <div class="kpi-icon"><i class="fa-solid fa-coins"></i></div>
             <div class="kpi-value text-yellow">฿{{ totalRevenue.toLocaleString() }}</div>
             <div class="kpi-label">ยอดรวมทั้งหมด</div>
           </div>
           <div class="kpi-card">
-            <div class="kpi-icon">👥</div>
+            <div class="kpi-icon"><i class="fa-solid fa-users"></i></div>
             <div class="kpi-value text-yellow">{{ users.length }}</div>
             <div class="kpi-label">ผู้ใช้งานในระบบ</div>
           </div>
         </div>
 
         <div class="table-container">
-          <h3 class="section-title mb-3">📋 ออเดอร์ล่าสุด 5 รายการ</h3>
+          <h3 class="section-title mb-3">ออเดอร์ล่าสุด 5 รายการ</h3>
           <table class="custom-table">
             <thead>
               <tr>
@@ -103,8 +103,8 @@
                 <td>{{ formatDate(user.createdAt) }}</td>
                 <td>
                   <div class="action-buttons">
-                    <button @click="openEditUser(user)" class="btn-icon edit" title="แก้ไข">✏️</button>
-                    <button @click="deleteUser(user.id)" class="btn-icon delete" title="ลบ">🗑️</button>
+                    <button @click="openEditUser(user)" class="btn-icon edit" title="แก้ไข"><i class="fa-solid fa-edit" style="color: #2196f3;"></i></button>
+                    <button @click="deleteUser(user.id)" class="btn-icon delete" title="ลบ"><i class="fa-solid fa-trash" style="color: #ff5555;"></i></button>
                   </div>
                 </td>
               </tr>
@@ -121,14 +121,14 @@
 
         <!-- Search + Filter + Export -->
         <div class="toolbar mb-3 d-flex gap-3 flex-wrap align-items-center">
-          <input v-model="orderSearch" class="search-input" placeholder="🔍 ค้นหา อีเมล / รุ่น / tracking...">
+          <input v-model="orderSearch" class="search-input" placeholder=" ค้นหา อีเมล / รุ่น / tracking...">
           <select v-model="orderStatusFilter" class="status-select">
             <option value="">ทุกสถานะ</option>
             <option value="pending">รอดำเนินการ</option>
             <option value="processing">กำลังผลิต</option>
             <option value="completed">จัดส่งแล้ว</option>
           </select>
-          <button @click="exportOrdersCSV" class="btn-export">📥 Export CSV</button>
+          <button @click="exportOrdersCSV" class="btn-export">Export CSV</button>
         </div>
 
         <div class="table-container">
@@ -167,7 +167,7 @@
                 <td>
                   <div class="action-buttons">
                     <button @click="viewOrderDetails(order)" class="btn-view">รายละเอียด</button>
-                    <button @click="deleteOrder(order.id)" class="btn-icon delete" title="ลบ">🗑️</button>
+                    <button @click="deleteOrder(order.id)" class="btn-icon delete" title="ลบ"><i class="fa-solid fa-trash" style="color: #ff5555;"></i></button>
                   </div>
                 </td>
               </tr>
@@ -214,8 +214,8 @@
                 </td>
                 <td>
                   <div class="action-buttons">
-                    <button @click="openEditProduct(product)" class="btn-icon edit" title="แก้ไข">✏️</button>
-                    <button @click="deleteProduct(product.id)" class="btn-icon delete" title="ลบ">🗑️</button>
+                    <button @click="openEditProduct(product)" class="btn-icon edit" title="แก้ไข"><i class="fa-solid fa-edit" style="color: #2196f3;"></i></button>
+                    <button @click="deleteProduct(product.id)" class="btn-icon delete" title="ลบ"><i class="fa-solid fa-trash" style="color: #ff5555;"></i></button>
                   </div>
                 </td>
               </tr>
@@ -243,8 +243,8 @@
                 <span class="text-yellow">฿{{ (sticker.price || 0).toLocaleString() }}</span>
               </div>
               <div class="sticker-actions">
-                <button @click="openEditSticker(sticker)" class="btn-icon edit" title="แก้ไข">✏️</button>
-                <button @click="deleteSticker(sticker.docId)" class="btn-icon delete" title="ลบ">🗑️</button>
+                <button @click="openEditSticker(sticker)" class="btn-icon edit" title="แก้ไข"><i class="fa-solid fa-edit" style="color: #2196f3;"></i></button>
+                <button @click="deleteSticker(sticker.docId)" class="btn-icon delete" title="ลบ"><i class="fa-solid fa-trash" style="color: #ff5555;"></i></button>
               </div>
             </div>
             <div v-if="stickers.length === 0" class="text-center py-5 text-white w-100">ยังไม่มีสติ๊กเกอร์ในระบบ</div>
@@ -281,7 +281,7 @@
 
             <!-- Tracking Number -->
             <div class="input-group mb-3">
-              <label>🚚 Tracking Number</label>
+              <label><i class="fa-solid fa-truck" style="color: #ff9800;"></i> Tracking Number</label>
               <div class="d-flex gap-2">
                 <input type="text" v-model="selectedOrder.trackingNumber" class="custom-input" placeholder="กรอกเลข Tracking...">
                 <button @click="saveTracking(selectedOrder)" class="btn-save-sm">บันทึก</button>
@@ -290,7 +290,7 @@
 
             <!-- Admin Note -->
             <div class="input-group mb-3">
-              <label>📝 Admin Note</label>
+              <label><i class="fa-solid fa-note-sticky" style="color: #CDF100;"></i> Admin Note</label>
               <textarea v-model="selectedOrder.adminNote" class="custom-input" rows="3" placeholder="บันทึกข้อความภายใน..."></textarea>
               <button @click="saveAdminNote(selectedOrder)" class="btn-save-sm mt-2">บันทึก Note</button>
             </div>
@@ -321,7 +321,7 @@
             <option value="admin">Admin (ผู้ดูแลระบบ)</option>
           </select>
         </div>
-        <button @click="saveEditUser" class="btn-yellow-full w-100">💾 บันทึกการแก้ไข</button>
+        <button @click="saveEditUser" class="btn-yellow-full w-100"><i class="fa-solid fa-save" style="color: #000;"></i> บันทึกการแก้ไข</button>
       </div>
     </div>
 
@@ -375,7 +375,7 @@
           <label style="margin-bottom:0">เปิดขาย</label>
           <input type="checkbox" v-model="editingProduct.isActive" style="width:20px;height:20px;cursor:pointer">
         </div>
-        <button @click="saveProduct" class="btn-yellow-full w-100">💾 บันทึก</button>
+        <button @click="saveProduct" class="btn-yellow-full w-100"><i class="fa-solid fa-save" style="color: #000;"></i> บันทึก</button>
       </div>
     </div>
 

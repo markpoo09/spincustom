@@ -27,7 +27,7 @@
           </div>
 
           <div class="input-group mb-3">
-            <label>วงดนตรีที่ชอบ 🎸</label>
+            <label>วงดนตรีที่ชอบ</label>
             <input type="text" v-model="favoriteBand" placeholder="เช่น Arctic Monkeys, Bodyslam..." class="custom-input" required>
           </div>
         </div>

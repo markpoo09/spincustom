@@ -386,7 +386,7 @@
                   {{ isSavingOrder ? 'กำลังบันทึก...' : ' บันทึกออเดอร์ลงระบบ' }}
                 </button>
                 <button @click="saveDraft" class="btn-dark-grey" style="width:100%">
-                  {{ draftSaved ? '✅ บันทึกแล้ว!' : '💾 บันทึกการออกแบบค้างไว้' }}
+                  {{ draftSaved ? 'บันทึกแล้ว!' : 'บันทึกการออกแบบค้างไว้' }}
                 </button>
                 <div v-if="draftSaved" class="share-success"> บันทึกแล้ว — กลับมาต่อได้ที่หน้าโปรไฟล์!</div>
               </div>
@@ -395,7 +395,7 @@
             <!-- Order card -->
             <div class="order-card">
               <div class="order-card-inner">
-                <div class="order-icon">🎵</div>
+                <i class="fa-solid fa-music"></i>
                 <div class="order-detail">
                   <p class="order-title">{{ vinylTypes[selectedType - 1].name }}</p>
                   <p class="order-sub">ลวดลายตัวเครื่อง: {{ selectedTextures.body.split('/').pop() }} · สีปุ่ม: {{ selectedColors.button }}</p>

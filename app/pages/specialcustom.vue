@@ -209,7 +209,7 @@
                   {{ isSavingOrder ? 'กำลังบันทึก...' : ' บันทึกออเดอร์ลงระบบ' }}
                 </button>
                 <button @click="saveDraft" class="btn-dark-grey" style="width:100%">
-                  {{ draftSaved ? '✅ บันทึกแล้ว!' : '💾 บันทึกการออกแบบค้างไว้' }}
+                  {{ draftSaved ? 'บันทึกแล้ว!' : 'บันทึกการออกแบบค้างไว้' }}
                 </button>
                 <div v-if="draftSaved" class="share-success text-red"> บันทึกแล้ว — กลับมาต่อได้ที่หน้าโปรไฟล์!</div>
               </div>
@@ -217,7 +217,7 @@
 
             <div class="order-card" style="border-color: rgba(255, 59, 59, 0.4);">
               <div class="order-card-inner">
-                <div class="order-icon">⭐</div>
+                <div class="order-icon"><i class="fa-solid fa-star"></i></div>
                 <div class="order-detail">
                   <p class="order-title text-red">{{ activeCollection?.campaign_name || 'Limited Edition' }}</p>
                   <p class="order-sub">รุ่นพิเศษ (ดีไซน์คงที่)</p>
@@ -1043,7 +1043,7 @@ function resetAll() {
 .share-success { font-size: 13px; margin-top: 8px; }
 .order-card { background: linear-gradient(135deg, #2a2a2a, #111); border: 1px solid #444; border-radius: 16px; padding: 20px; margin-top: 20px; }
 .order-card-inner { display: flex; align-items: center; gap: 16px; }
-.order-icon { font-size: 32px; }
+.order-icon { font-size: 32px; color: #cdf100; }
 .order-detail { flex: 1; }
 .order-title { font-size: 15px; margin: 0 0 4px 0; font-weight: 500; }
 .order-sub { color: #888; font-size: 12px; margin: 0; }
