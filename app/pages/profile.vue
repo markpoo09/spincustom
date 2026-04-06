@@ -32,19 +32,8 @@
           <button @click="handleLogout" class="btn-logout">ออกจากระบบ</button>
         </div>
 
-        <!-- TABS -->
-        <div class="tab-bar">
-          <button class="tab-btn" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">
-            ออเดอร์ของฉัน
-            <span v-if="orders.length > 0" class="tab-badge">{{ orders.length }}</span>
-          </button>
-          <button class="tab-btn" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
-            ข้อมูลส่วนตัว
-          </button>
-        </div>
-
-        <!-- TAB: INFO -->
-        <div v-if="activeTab === 'info'" class="tab-content">
+        <!-- INFO -->
+        <div class="tab-content">
           <div v-if="!isEditing" class="info-grid">
             <div class="info-card">
               <p class="info-label">ชื่อของคุณ</p>
@@ -267,7 +256,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc, collection, query, where, orderBy, getDocs, updateDoc } from 'firebase/firestore'
-import { auth, db } from '~/utils/firebase'
+import { auth, db } from '@/utils/firebase'
 
 const router = useRouter()
 

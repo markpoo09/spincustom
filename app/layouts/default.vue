@@ -12,6 +12,7 @@
               <NuxtLink to="/" class="nav-item">HOME</NuxtLink>
               <NuxtLink to="/custom" class="nav-item">CUSTOM</NuxtLink>
               <NuxtLink to="/about" class="nav-item">ABOUT</NuxtLink>
+              <NuxtLink to="/orders" class="nav-item">ORDERS</NuxtLink>
               
               <NuxtLink v-if="!isLoggedIn" to="/login" class="login-btn">LOGIN</NuxtLink>
               
@@ -19,7 +20,7 @@
                 <div class="user-display" @click="showUserMenu = !showUserMenu">
                   <!-- <span class="name-text">{{ userName.toUpperCase() }}</span> -->
                    <span class="name-text">{{ userName ? userName.toUpperCase() : 'USER' }}</span>
-                  <span class="arrow-icon" :class="{ 'rotate': showUserMenu }">▼</span>
+                  <span class="arrow-icon" :class="{ 'rotate': showUserMenu }"><i class="fa-solid fa-caret-down"></i></span>
                 </div>
                 
                 <transition name="slide-fade">
@@ -52,7 +53,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
-import { auth } from '@/utils/firebase'
+import { auth, db } from '@/utils/firebase'
 
 const router = useRouter()
 const userName = ref('') 
@@ -325,7 +326,7 @@ onUnmounted(() => {
 }
 
 .arrow-icon {
-  font-size: 10px;
+  font-size: 16px;
   transition: transform 0.3s ease;
 }
 
