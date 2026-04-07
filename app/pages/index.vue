@@ -2,6 +2,58 @@
   <div class="home-page-wrapper">
     <div class="home-page">
       
+      <!-- ==================== ORDER STATUS POPUP ==================== -->
+      <Transition name="popup-slide">
+        <div v-if="showOrderPopup && orderNotification" class="order-popup-overlay" @click.self="closePopup">
+          <div class="order-popup-card">
+
+            <!-- แถบสีสถานะด้านบน -->
+            <div class="popup-status-bar" :style="{ background: currentStatus.color }"></div>
+
+            <!-- ปุ่มปิด -->
+            <button class="popup-close-btn" @click="closePopup">X</button>
+
+            <!-- Header -->
+            <div class="popup-header">
+              <span class="popup-icon"><i :class="currentStatus.icon"></i></span>
+              <div>
+                <p class="popup-label">{{ orderNotification.source === 'admin_update' ? 'สถานะออเดอร์อัปเดตแล้ว' : 'ออเดอร์ของคุณลงระบบแล้ว!' }}</p>
+                <h3 class="popup-status-text" :style="{ color: currentStatus.color }">{{ currentStatus.label }}</h3>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="popup-divider"></div>
+
+            <!-- Body -->
+            <div class="popup-body">
+              <div class="popup-row">
+                <span class="popup-field">สินค้า</span>
+                <span class="popup-value">{{ orderNotification.productName }}</span>
+              </div>
+              <div class="popup-row" v-if="orderNotification.totalPrice">
+                <span class="popup-field">ยอดรวม</span>
+                <span class="popup-value popup-price">฿{{ Number(orderNotification.totalPrice).toLocaleString() }}</span>
+              </div>
+              <div class="popup-row">
+                <span class="popup-field">สถานะ</span>
+                <span class="popup-status-badge" :style="{ color: currentStatus.color, borderColor: currentStatus.color }">
+                  {{ currentStatus.label }}
+                </span>
+              </div>
+              <p class="popup-desc">{{ currentStatus.desc }}</p>
+            </div>
+
+            <!-- Actions -->
+            <div class="popup-actions">
+              <NuxtLink to="/orders" class="popup-btn-primary" @click="closePopup">ดูออเดอร์ทั้งหมด</NuxtLink>
+              <button class="popup-btn-ghost" @click="closePopup">ปิด</button>
+            </div>
+
+          </div>
+        </div>
+      </Transition>
+
       <section class="hero-section">
         <img src="/bender_1.png" class="hero-text-bg" alt="Text Background" />
         <img src="/elements-vinyl.png" alt="Elements Vinyl" class="hero-elements-vinyl spinning-record" />
@@ -124,11 +176,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
 import { db } from '@/utils/firebase'
 
-// 1. สร้างตัวแปรเก็บข้อมูล 
+// ==================== Special Collection ====================
 const specialData = ref({
   campaign_name: 'กำลังโหลด...',
   date_range: 'กำลังโหลด...',
@@ -136,17 +188,10 @@ const specialData = ref({
   elements_image: '/elements_collection.png'
 })
 
-// 2. ฟังก์ชันดึงข้อมูลจาก Firebase
 async function fetchSpecialCollection() {
   try {
-    const q = query(
-      collection(db, 'special_collections'), 
-      where('is_active', '==', true), 
-      limit(1)
-    )
-    
+    const q = query(collection(db, 'special_collections'), where('is_active', '==', true), limit(1))
     const querySnapshot = await getDocs(q)
-    
     if (!querySnapshot.empty) {
       const docData = querySnapshot.docs[0].data()
       specialData.value = {
@@ -161,9 +206,44 @@ async function fetchSpecialCollection() {
   }
 }
 
-// 3. สั่งให้ทำงานทันทีที่เปิดหน้านี้
-onMounted(() => {
+// ==================== Order Status Popup ====================
+// Map สถานะ → ข้อความ, icon class, สี, คำอธิบาย
+const STATUS_CONFIG = {
+  pending:    { label: 'รอดำเนินการ', icon: 'fa-solid fa-hourglass-start', color: '#FFB547', desc: 'ออเดอร์ของคุณอยู่ในคิว ทีมงานกำลังตรวจสอบ' },
+  processing: { label: 'กำลังผลิต',   icon: 'fa-solid fa-cogs',          color: '#5C9EFF', desc: 'ทีมงานกำลังดำเนินการผลิตสินค้าของคุณอยู่' },
+  completed:  { label: 'จัดส่งแล้ว',  icon: 'fa-solid fa-check-circle',   color: '#CDF100', desc: 'สินค้าถูกจัดส่งเรียบร้อยแล้ว ขอบคุณที่ใช้บริการ!' },
+  cancelled:  { label: 'ยกเลิกแล้ว',  icon: 'fa-solid fa-ban',            color: '#FF5C5C', desc: 'ออเดอร์นี้ถูกยกเลิก กรุณาติดต่อทีมงาน' },
+}
+
+const orderNotification = ref(null)
+const showOrderPopup = ref(false)
+
+const currentStatus = computed(() =>
+  STATUS_CONFIG[orderNotification.value?.status] || { label: orderNotification.value?.status || '-', icon: 'fa-solid fa-box', color: '#aaa', desc: '' }
+)
+
+function closePopup() {
+  showOrderPopup.value = false
+  // ลบออกเพื่อไม่ให้โชว์ซ้ำเมื่อ refresh (เฉพาะ new_order)
+  // admin_update ล้างเช่นกัน เพื่อป้องกันค้างหน้า
+  localStorage.removeItem('spinLastOrder')
+}
+
+onMounted(async () => {
   fetchSpecialCollection()
+
+  // ✅ ดึงข้อมูล spinLastOrder จาก localStorage
+  try {
+    const raw = localStorage.getItem('spinLastOrder')
+    if (raw) {
+      const data = JSON.parse(raw)
+      orderNotification.value = data
+      // หน่วงเล็กน้อยเพื่อให้ transition ทำงานสวยงาม
+      setTimeout(() => { showOrderPopup.value = true }, 400)
+    }
+  } catch (e) {
+    console.warn('spinLastOrder parse error:', e)
+  }
 })
 </script>
 
@@ -528,5 +608,202 @@ onMounted(() => {
   .hero-elements-vinyl3, .hero-elements-vinyl4 {
     display: none;
   }
+}
+
+/* ==================== Order Status Popup ==================== */
+.order-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.order-popup-card {
+  position: relative;
+  background: #1e1e1a;
+  border: 1px solid #333;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 600px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8);
+  font-family: 'Prompt', sans-serif;
+}
+
+/* แถบสีด้านบน */
+.popup-status-bar {
+  height: 8px;
+  width: 100%;
+  transition: background 0.3s;
+}
+
+.popup-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  background: transparent;
+  border: none;
+  color: #666;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: 0.2s;
+  z-index: 2;
+}
+.popup-close-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+/* Header */
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 30px 32px 20px;
+}
+.popup-icon {
+  font-size: 44px;
+  line-height: 1;
+  flex-shrink: 0;
+  color: inherit;
+}
+.popup-icon i {
+  display: inline-block;
+}
+.popup-label {
+  font-size: 13px;
+  color: #888;
+  margin: 0 0 6px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.popup-status-text {
+  font-size: 30px;
+  font-weight: 700;
+  margin: 0;
+  font-family: 'Jura', sans-serif;
+}
+
+.popup-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 32px;
+}
+
+/* Body */
+.popup-body {
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.popup-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.popup-field {
+  color: #777;
+  font-size: 15px;
+}
+.popup-value {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+}
+.popup-price {
+  color: #CDF100;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'Jura', sans-serif;
+}
+.popup-status-badge {
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid;
+  padding: 5px 14px;
+  border-radius: 20px;
+}
+.popup-desc {
+  color: #666;
+  font-size: 14px;
+  margin: 6px 0 0 0;
+  line-height: 1.6;
+}
+
+/* Actions */
+.popup-actions {
+  display: flex;
+  gap: 12px;
+  padding: 20px 32px 28px;
+}
+.popup-btn-primary {
+  flex: 1;
+  background: #CDF100;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 20px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.popup-btn-primary:hover {
+  background: #b8da00;
+  transform: translateY(-1px);
+}
+.popup-btn-ghost {
+  background: transparent;
+  color: #888;
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 14px 28px;
+  font-family: 'Prompt', sans-serif;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.popup-btn-ghost:hover {
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  border-color: #666;
+}
+
+/* Transition */
+.popup-slide-enter-active,
+.popup-slide-leave-active {
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.popup-slide-enter-from,
+.popup-slide-leave-to {
+  opacity: 0;
+  transform: scale(0.88) translateY(20px);
+}
+
+@media (max-width: 480px) {
+  .order-popup-card { border-radius: 18px; }
+  .popup-actions { flex-direction: column; }
+  .popup-btn-ghost { text-align: center; }
+  .popup-header { padding: 22px 20px 16px; }
+  .popup-body { padding: 18px 20px; }
+  .popup-actions { padding: 16px 20px 22px; }
+  .popup-divider { margin: 0 20px; }
 }
 </style>

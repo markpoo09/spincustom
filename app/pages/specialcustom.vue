@@ -1,5 +1,58 @@
 <template>
   <div class="customizer-layout">
+
+    <!-- ==================== ORDER STATUS POPUP ==================== -->
+    <Transition name="popup-slide">
+      <div v-if="showOrderPopup && orderNotification" class="order-popup-overlay" @click.self="closeOrderPopup">
+        <div class="order-popup-card">
+
+          <!-- แถบสีสถานะด้านบน -->
+          <div class="popup-status-bar" :style="{ background: currentOrderStatus.color }"></div>
+
+          <!-- ปุ่มปิด -->
+          <button class="popup-close-btn" @click="closeOrderPopup">X</button>
+
+          <!-- Header -->
+          <div class="popup-header">
+            <span class="popup-icon"><i :class="currentOrderStatus.icon"></i></span>
+            <div>
+              <p class="popup-label">{{ orderNotification.source === 'admin_update' ? 'สถานะออเดอร์อัปเดตแล้ว' : 'ออเดอร์ Special Edition ลงระบบแล้ว' }}</p>
+              <h3 class="popup-status-text" :style="{ color: currentOrderStatus.color }">{{ currentOrderStatus.label }}</h3>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="popup-divider"></div>
+
+          <!-- Body -->
+          <div class="popup-body">
+            <div class="popup-row">
+              <span class="popup-field">สินค้า</span>
+              <span class="popup-value">{{ orderNotification.productName }}</span>
+            </div>
+            <div class="popup-row" v-if="orderNotification.totalPrice">
+              <span class="popup-field">ยอดรวม</span>
+              <span class="popup-value popup-price">฿{{ Number(orderNotification.totalPrice).toLocaleString() }}</span>
+            </div>
+            <div class="popup-row">
+              <span class="popup-field">สถานะ</span>
+              <span class="popup-status-badge" :style="{ color: currentOrderStatus.color, borderColor: currentOrderStatus.color }">
+                {{ currentOrderStatus.label }}
+              </span>
+            </div>
+            <p class="popup-desc">{{ currentOrderStatus.desc }}</p>
+          </div>
+
+          <!-- Actions -->
+          <div class="popup-actions">
+            <NuxtLink to="/orders" class="popup-btn-primary" @click="closeOrderPopup">ดูออเดอร์ทั้งหมด</NuxtLink>
+            <button class="popup-btn-ghost" @click="closeOrderPopup">ปิด</button>
+          </div>
+
+        </div>
+      </div>
+    </Transition>
+
     <div class="container-main">
       <div class="header-section text-center">
         <p class="customizing-text">LIMITED EDITION</p>
@@ -24,8 +77,8 @@
         </div>
 
         <div class="nav-arrows">
-          <button class="arrow-btn btn-prev" @click="prevStep" :disabled="currentStep === 1">◀</button>
-          <button class="arrow-btn btn-next" @click="nextStep" :disabled="currentStep === 5">▶</button>
+          <button class="arrow-btn btn-prev" @click="prevStep" :disabled="currentStep === 1"><i class="fas fa-caret-left"></i></button>
+          <button class="arrow-btn btn-next" @click="nextStep" :disabled="currentStep === 5"><i class="fas fa-caret-right"></i></button>
         </div>
       </div>
 
@@ -163,9 +216,11 @@
                   <span>{{ formatTime(audioDuration) }}</span>
                 </div>
                 <div class="control-btns">
-                  <button class="ctrl-btn" @click="togglePlay" :disabled="!audioURL"><span>{{ isPlaying ? '⏸' : '▶' }}</span></button>
-                  <button class="ctrl-btn" @click="stopAudio" :disabled="!audioURL">⏹</button>
-                </div>
+                <button class="ctrl-btn" @click="togglePlay" :disabled="!audioURL">
+                  <span>{{ isPlaying ? '⏸' : '▶' }}</span>
+                </button>
+                <button class="ctrl-btn" @click="stopAudio" :disabled="!audioURL">⏹</button>
+              </div>
               </div>
             </div>
           </div>
@@ -175,7 +230,7 @@
 
             <div class="tools-grid-2">
               <div class="tool-panel text-left">
-                <h4 class="panel-title-left mb-4"> สรุปราคา</h4>
+                <h4 class="panel-title-left mb-4">สรุปราคา</h4>
                 <div class="price-list">
                   <div class="price-row">
                     <span>{{ activeCollection?.campaign_name || 'เครื่องเล่นแผ่นเสียง (Special Edition)' }}</span>
@@ -200,18 +255,18 @@
               </div>
 
               <div class="tool-panel text-left">
-                <h4 class="panel-title-left mb-4"> ดาวน์โหลดผลงาน</h4>
+                <h4 class="panel-title-left mb-4">ดาวน์โหลดผลงาน</h4>
                 <div class="download-preview mb-3">
                   <img v-if="previewDataURL" :src="previewDataURL" class="thumb-canvas" alt="Preview" />
                 </div>
                 <button @click="downloadCanvas" class="btn-yellow" style="width:100%;margin-bottom:8px">ดาวน์โหลดรูปภาพ (PNG)</button>
                 <button @click="saveSpecialOrder" class="btn-yellow" style="width:100%;margin-bottom:8px; background-color: #ff3b3b; color: #fff;" :disabled="isSavingOrder">
-                  {{ isSavingOrder ? 'กำลังบันทึก...' : ' บันทึกออเดอร์ลงระบบ' }}
+                  {{ isSavingOrder ? 'กำลังบันทึก...' : 'บันทึกออเดอร์ลงระบบ' }}
                 </button>
                 <button @click="saveDraft" class="btn-dark-grey" style="width:100%">
                   {{ draftSaved ? 'บันทึกแล้ว!' : 'บันทึกการออกแบบค้างไว้' }}
                 </button>
-                <div v-if="draftSaved" class="share-success text-red"> บันทึกแล้ว — กลับมาต่อได้ที่หน้าโปรไฟล์!</div>
+                <div v-if="draftSaved" class="share-success text-red">บันทึกแล้ว — กลับมาต่อได้ที่หน้าโปรไฟล์</div>
               </div>
             </div>
 
@@ -251,6 +306,26 @@ import { useRouter, useRoute } from 'vue-router';
 
 const router = useRouter();
 const route = useRoute();
+
+// ==================== Order Status Popup ====================
+const STATUS_CONFIG = {
+  pending:    { label: 'รอดำเนินการ', icon: 'fa-solid fa-hourglass-start', color: '#FFB547', desc: 'ออเดอร์ของคุณอยู่ในคิว ทีมงานกำลังตรวจสอบ' },
+  processing: { label: 'กำลังผลิต',   icon: 'fa-solid fa-cogs',            color: '#5C9EFF', desc: 'ทีมงานกำลังดำเนินการผลิตสินค้าของคุณอยู่' },
+  completed:  { label: 'จัดส่งแล้ว',  icon: 'fa-solid fa-check-circle',   color: '#CDF100', desc: 'สินค้าถูกจัดส่งเรียบร้อยแล้ว ขอบคุณที่ใช้บริการ' },
+  cancelled:  { label: 'ยกเลิกแล้ว',  icon: 'fa-solid fa-ban',            color: '#FF5C5C', desc: 'ออเดอร์นี้ถูกยกเลิก กรุณาติดต่อทีมงาน' },
+}
+
+const orderNotification = ref(null)
+const showOrderPopup = ref(false)
+
+const currentOrderStatus = computed(() =>
+  STATUS_CONFIG[orderNotification.value?.status] || { label: orderNotification.value?.status || '-', icon: 'fa-solid fa-box', color: '#aaa', desc: '' }
+)
+
+function closeOrderPopup() {
+  showOrderPopup.value = false
+  localStorage.removeItem('spinLastOrder')
+}
 
 // ================= STATE พื้นฐาน =================
 const currentStep = ref(1);
@@ -356,6 +431,18 @@ onMounted(async () => {
   onAuthStateChanged(auth, (user) => { isLoggedIn.value = !!user; });
   fCanvas = new fabric.Canvas(canvasEl.value, { width: 600, height: 400, backgroundColor: '#ffffff' });
   await fetchSpecialData();
+
+  // ==================== ตรวจสอบ Order Popup ====================
+  try {
+    const raw = localStorage.getItem('spinLastOrder')
+    if (raw) {
+      const data = JSON.parse(raw)
+      orderNotification.value = data
+      setTimeout(() => { showOrderPopup.value = true }, 400)
+    }
+  } catch (e) {
+    console.warn('spinLastOrder parse error:', e)
+  }
 
   // ================= RESTORE DRAFT =================
   if (route.query.restore === 'special') {
@@ -851,18 +938,28 @@ async function saveSpecialOrder() {
       status: 'pending',
       createdAt: serverTimestamp()
     };
-    await addDoc(collection(db, 'orders'), orderData);
+    const docRef = await addDoc(collection(db, 'orders'), orderData);
+    localStorage.setItem('spinLastOrder', JSON.stringify({
+      orderId: docRef.id,
+      productName: orderData.productName,
+      totalPrice: orderData.totalPrice,
+      status: 'pending',
+      source: 'new_order',
+      savedAt: new Date().toISOString(),
+    }))
     // เด้ง Popup แจ้งเตือนสั่งซื้อรุ่น Special สำเร็จ
-    window.Swal.fire({
+    await window.Swal.fire({
       title: "สั่งซื้อรุ่นพิเศษสำเร็จ!",
-      text: "ข้อมูลถูกบันทึกเรียบร้อยแล้วครับ ขอบคุณที่อุดหนุนรุ่น Limited Edition ของเรา",
+      text: "กำลังพาคุณไปหน้าหลัก...",
       icon: "success",
       draggable: true,
+      timer: 2500,
+      timerProgressBar: true,
+      showConfirmButton: false,
       background: '#232321', // สีพื้นหลังกล่อง
       color: '#ffffff', // สีตัวหนังสือ
-      confirmButtonColor: '#ff3b3b', // สีปุ่มตกลง (แดง Limited)
-      confirmButtonText: 'ตกลง',
     });
+    router.push('/');
   } catch (e) { 
     alert("เกิดข้อผิดพลาด: " + e.message); 
   } finally { 
@@ -959,7 +1056,7 @@ function resetAll() {
 .product-name { color: #ff3b3b; font-size: 24px; font-weight: 500; margin: 15px 0 5px 0; text-align: center; }
 .product-desc { color: #ddd; font-size: 14px; margin: 0; text-align: center; }
 .nav-arrows { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
-.arrow-btn { background: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 0; font-size: 16px; font-weight: bold; color: #000; }
+.arrow-btn { background: #fff; border: none; padding: 10px 20px; cursor: pointer; border-radius: 0; font-size: 20px; font-weight: bold; color: #000; }
 .arrow-btn.btn-next { background: #ff3b3b; color: #fff; }
 .arrow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 

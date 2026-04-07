@@ -1435,20 +1435,33 @@ async function saveOrder() {
       status: 'pending',
       createdAt: serverTimestamp()
     };
-    await addDoc(collection(db, 'orders'), orderData);
+    const docRef = await addDoc(collection(db, 'orders'), orderData);
     const uid = auth.currentUser?.uid
     if (uid) localStorage.removeItem(`spinCustomDraft_${uid}`)
+
+    // ✅ บันทึกข้อมูลออเดอร์ล่าสุดลง localStorage → หน้า Home จะดึงไปแสดง popup
+    localStorage.setItem('spinLastOrder', JSON.stringify({
+      orderId: docRef.id,
+      productName: orderData.productName,
+      totalPrice: orderData.totalPrice,
+      status: 'pending',
+      source: 'new_order',              // บอกว่ามาจากการสั่งใหม่
+      savedAt: new Date().toISOString(),
+    }))
+
     // เด้ง Popup แจ้งเตือนสั่งซื้อสำเร็จ
-    window.Swal.fire({
+    await window.Swal.fire({
       title: "บันทึกออเดอร์สำเร็จ!",
-      text: "ข้อมูลถูกบันทึกเรียบร้อยแล้วครับ 🎉",
+      text: "กำลังพาคุณไปหน้าหลัก...",
       icon: "success",
       draggable: true,
-      background: '#232321', // สีพื้นหลังกล่อง
-      color: '#ffffff', // สีตัวหนังสือ
-      confirmButtonColor: '#CDF100', // สีปุ่มตกลง (เหลือง SpinCustom)
-      confirmButtonText: '<span style="color:#000; font-weight:bold;">ตกลง</span>',
+      timer: 2500,
+      timerProgressBar: true,
+      showConfirmButton: false,
+      background: '#232321',
+      color: '#ffffff',
     });
+    router.push('/');
     
     
   } catch (error) {

@@ -532,9 +532,36 @@ const deleteUser = async (userId) => {
 // ===== ORDERS ACTIONS =====
 const viewOrderDetails = (order) => { selectedOrder.value = { ...order } }
 
-const updateOrderStatus = async (orderId, status) => {
-  try { await updateDoc(doc(db, 'orders', orderId), { status }) }
-  catch (e) { console.error(e) }
+const updateOrderStatus = async (orderId, newStatus) => {
+  const order = orders.value.find(o => o.id === orderId)
+  try {
+    await updateDoc(doc(db, 'orders', orderId), { status: newStatus })
+
+    // ✅ เขียนลง localStorage → หน้า Home ดึงไปแสดง popup สถานะ
+    localStorage.setItem('spinLastOrder', JSON.stringify({
+      orderId,
+      productName: order?.productName || 'ออเดอร์',
+      userEmail: order?.userEmail || '',
+      totalPrice: order?.totalPrice || 0,
+      status: newStatus,
+      source: 'admin_update',
+      savedAt: new Date().toISOString(),
+    }))
+
+    const statusThai = { pending: 'รอดำเนินการ', processing: 'กำลังผลิต', completed: 'จัดส่งแล้ว' }[newStatus] || newStatus
+    const statusIcon = { pending: '⏳', processing: '🔧', completed: '✅' }[newStatus] || '📦'
+    swal({
+      title: `${statusIcon} อัปเดตสถานะสำเร็จ!`,
+      html: `<span style="color:#aaa;font-size:14px;">ออเดอร์ของ <strong style="color:#fff;">${order?.userEmail || orderId}</strong><br>เปลี่ยนเป็น <strong style="color:#CDF100;">${statusThai}</strong> เรียบร้อยแล้ว</span>`,
+      icon: 'success',
+      timer: 2500,
+      timerProgressBar: true,
+      showConfirmButton: false,
+    })
+  } catch (e) {
+    console.error(e)
+    swal({ title: 'อัปเดตไม่สำเร็จ', text: e.message, icon: 'error', confirmButtonColor: '#ff3b3b' })
+  }
 }
 
 const saveTracking = async (order) => {
