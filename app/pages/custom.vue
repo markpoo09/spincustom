@@ -1446,6 +1446,7 @@ async function saveOrder() {
       totalPrice: orderData.totalPrice,
       status: 'pending',
       source: 'new_order',              // บอกว่ามาจากการสั่งใหม่
+      userId: auth.currentUser.uid,
       savedAt: new Date().toISOString(),
     }))
 

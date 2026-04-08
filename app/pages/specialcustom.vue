@@ -945,6 +945,7 @@ async function saveSpecialOrder() {
       totalPrice: orderData.totalPrice,
       status: 'pending',
       source: 'new_order',
+      userId: auth.currentUser.uid,
       savedAt: new Date().toISOString(),
     }))
     // เด้ง Popup แจ้งเตือนสั่งซื้อรุ่น Special สำเร็จ

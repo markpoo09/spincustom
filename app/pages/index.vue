@@ -177,8 +177,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onAuthStateChanged } from 'firebase/auth'
 import { collection, getDocs, query, where, limit } from 'firebase/firestore'
-import { db } from '@/utils/firebase'
+import { db, auth } from '@/utils/firebase'
 
 // ==================== Special Collection ====================
 const specialData = ref({
@@ -217,33 +218,48 @@ const STATUS_CONFIG = {
 
 const orderNotification = ref(null)
 const showOrderPopup = ref(false)
+const currentUser = ref(null)
 
 const currentStatus = computed(() =>
   STATUS_CONFIG[orderNotification.value?.status] || { label: orderNotification.value?.status || '-', icon: 'fa-solid fa-box', color: '#aaa', desc: '' }
 )
 
+function showStoredOrderNotification() {
+  if (showOrderPopup.value || orderNotification.value) return
+  const raw = localStorage.getItem('spinLastOrder')
+  if (!raw) return
+
+  try {
+    const data = JSON.parse(raw)
+    if (data.userId && currentUser.value && data.userId !== currentUser.value.uid) {
+      localStorage.removeItem('spinLastOrder')
+      return
+    }
+    if (data.userId && !currentUser.value) {
+      return
+    }
+    orderNotification.value = data
+    setTimeout(() => { showOrderPopup.value = true }, 400)
+  } catch (e) {
+    console.warn('spinLastOrder parse error:', e)
+    localStorage.removeItem('spinLastOrder')
+  }
+}
+
 function closePopup() {
   showOrderPopup.value = false
-  // ลบออกเพื่อไม่ให้โชว์ซ้ำเมื่อ refresh (เฉพาะ new_order)
-  // admin_update ล้างเช่นกัน เพื่อป้องกันค้างหน้า
   localStorage.removeItem('spinLastOrder')
 }
 
 onMounted(async () => {
   fetchSpecialCollection()
+  currentUser.value = auth.currentUser
+  showStoredOrderNotification()
 
-  // ✅ ดึงข้อมูล spinLastOrder จาก localStorage
-  try {
-    const raw = localStorage.getItem('spinLastOrder')
-    if (raw) {
-      const data = JSON.parse(raw)
-      orderNotification.value = data
-      // หน่วงเล็กน้อยเพื่อให้ transition ทำงานสวยงาม
-      setTimeout(() => { showOrderPopup.value = true }, 400)
-    }
-  } catch (e) {
-    console.warn('spinLastOrder parse error:', e)
-  }
+  onAuthStateChanged(auth, (user) => {
+    currentUser.value = user
+    showStoredOrderNotification()
+  })
 })
 </script>
 

@@ -542,6 +542,7 @@ const updateOrderStatus = async (orderId, newStatus) => {
       orderId,
       productName: order?.productName || 'ออเดอร์',
       userEmail: order?.userEmail || '',
+      userId: order?.userId || '',
       totalPrice: order?.totalPrice || 0,
       status: newStatus,
       source: 'admin_update',
